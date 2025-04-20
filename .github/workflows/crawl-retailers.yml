@@ -1,0 +1,46 @@
+name: Run Retailers Crawler
+
+on:
+  schedule:
+    # Run at 2:00 AM UTC every day
+    # Customize this cron expression as needed: https://crontab.guru/
+    - cron: '0 2 * * *'
+  
+  # Allow manual triggering from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm install
+      
+      - name: Create service account file
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > sa-key.json
+        working-directory: backend
+        
+      - name: Run crawler
+        run: |
+          cd backend
+          node crawl-github.js
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ./sa-key.json
+          
+      - name: Clean up credentials
+        if: always()
+        run: |
+          rm -f backend/sa-key.json 
