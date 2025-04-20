@@ -21,7 +21,7 @@ try {
   // and provided through the GOOGLE_APPLICATION_CREDENTIALS env variable
   admin.initializeApp({
     credential: admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
-    databaseURL: "https://smart-shopper-46f4c-default-rtdb.firebaseio.com/"
+    projectId: "smart-shopper-46f4c"
   });
   console.log("Firebase initialized successfully!");
 } catch (error) {
@@ -142,4 +142,4 @@ crawlAllRetailers()
   .catch(error => {
     console.error("Error during crawl process:", error);
     process.exit(1);
-  }); 
+  });
