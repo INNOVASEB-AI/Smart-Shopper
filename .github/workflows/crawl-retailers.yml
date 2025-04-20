@@ -27,6 +27,13 @@ jobs:
         run: |
           cd backend
           npm install
+          # Install Puppeteer dependencies
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
+          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
       
       - name: Create service account file
         run: |
@@ -39,6 +46,8 @@ jobs:
           node crawl-github.js
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ./sa-key.json
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
           
       - name: Clean up credentials
         if: always()
