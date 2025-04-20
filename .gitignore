@@ -1,0 +1,56 @@
+# macOS
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+firebase-debug.log*
+firebase-debug.*.log*
+backend/nohup.out
+
+# Runtime / PID files
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Dependency directories
+node_modules/
+bower_components/
+build/Release/
+
+# Cache directories
+.npm/
+.eslintcache
+.dataconnect
+
+# Environment variables
+.env
+.env.local
+
+# IDE settings
+.vscode/
+.idea/
+
+# Firebase cache
+.firebase/
+
+# Firebase config
+# (we recommend committing .firebaserc so the whole team deploys to the same projects)
+# .firebaserc
+
+# Lockfiles / integrity
+.lock-wscript
+.yarn-integrity
+
+# Packaged output
+*.tgz
+
+# Miscellaneous
+y

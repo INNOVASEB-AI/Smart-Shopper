@@ -1,0 +1,88 @@
+{
+  "retailers": [
+    {
+      "name": "Pick n Pay",
+      "logo": "https://www.pnp.co.za/content/dam/pnp/images/logos/pick-n-pay-logo.svg",
+      "backgroundColor": "#0081C6",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Checkers",
+      "logo": "https://www.checkers.co.za/content/dam/store/SHC-Checkers-Logo-2019.svg.svg",
+      "backgroundColor": "#E00000",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Woolworths",
+      "logo": "https://www.woolworths.co.za/images/logos/w-logo-old-green.svg",
+      "backgroundColor": "#007A4D",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Dischem",
+      "logo": "https://www.dischem.co.za/icons/logo.svg",
+      "backgroundColor": "#E7362B",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Clicks",
+      "logo": "https://clicks.co.za/img/brand/brand-clicks.svg",
+      "backgroundColor": "#E21936",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Spar",
+      "logo": "https://www.spar.co.za/Images/logo-desktop.svg",
+      "backgroundColor": "#00953B",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Makro",
+      "logo": "https://www.makro.co.za/Media/images/Makro-logo.svg",
+      "backgroundColor": "#0132A0",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Takealot",
+      "logo": "https://shopfront.takealot.com/static/media/src/images/logo.svg",
+      "backgroundColor": "#0A6FD7",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Game",
+      "logo": "https://www.game.co.za/medias/GAME-logo.svg?context=bWFzdGVyfGltYWdlc3wxMDQ1OXxpbWFnZS9zdmcreG1sfGltYWdlcy9oOGYvaGZmLzg4MzExMjAyNzEzOTAuc3ZnfGY0NjdiZTAyZTQ4NTk4M2ZlNGU2MzJiZmYyODgyZDAxZWIyYzEzNzMwYmUwZjhlMzUzMGU2Mjk0MjE2ODYwYTc",
+      "backgroundColor": "#1A1F71",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "TymeBank",
+      "logo": "https://www.tymebank.co.za/assets/logos/tymebank-logo.svg",
+      "backgroundColor": "#00A071",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Uber",
+      "logo": "https://www.uber.com/assets/icons/apple-touch-icon-1734beeaa059d2eca8d59b96c083cca0.png",
+      "backgroundColor": "#000000",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Capitec",
+      "logo": "https://www.capitecbank.co.za/globalassets/pages/about-us/media/logos/capitec-logo_white.svg",
+      "backgroundColor": "#00A651",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "Shoprite",
+      "logo": "https://www.shoprite.co.za/content/dam/SHC-Shoprite-2019-Logo.svg",
+      "backgroundColor": "#E30613",
+      "textColor": "#FFFFFF"
+    },
+    {
+      "name": "DefaultCard",
+      "logo": "",
+      "backgroundColor": "#6C5CE7",
+      "textColor": "#FFFFFF"
+    }
+  ]
+} 

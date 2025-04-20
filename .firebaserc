@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "smart-shopper-46f4c",
+    "dev": "smart-shopper-dev",
+    "prod": "smart-shopper-46f4c"
+  },
+  "targets": {},
+  "etags": {}
+}

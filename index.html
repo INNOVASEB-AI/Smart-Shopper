@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Shopper SA - Vibrant Redesign</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Animate.css (for UI animations) -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+  />
+
+  <!-- Heroicons via CDN -->
+  <!-- <script
+    type="module"
+    src="https://cdn.jsdelivr.net/npm/heroicons@2.1.3/24/outline/index.js"
+  ></script>
+  <script
+    type="module"
+    src="https://cdn.jsdelivr.net/npm/heroicons@2.1.3/24/solid/index.js"
+  ></script> -->
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css"/>
+
+  <!-- Immediate Theme Initialization to prevent FOUC -->
+  <script>
+    if (
+      localStorage.theme === "dark" ||
+      (!("theme" in localStorage) &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches)
+    ) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  </script>
+
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#FF6F61" />
+</head>
+<body class="min-h-screen bg-slate-100 dark:bg-slate-800 flex flex-col">
+  <!-- Skip link for keyboard users -->
+  <a href="#main-content" class="skip-to-content">Skip to content</a>
+  
+  <!-- PHONE MOCKUP -->
+  <!-- <div class="phone-mock transition-all duration-500 ease-in-out"> -->
+    <!-- The "screen-content" is now split into distinct header, main, and nav -->
+    <header
+      class="p-4 flex justify-between items-center flex-shrink-0 animate__animated animate__fadeInDown"
+      style="
+        background-color: var(--header-bg);
+        color: var(--header-text);
+        border-bottom: 1px solid var(--border-color);
+      "
+      role="banner"
+    >
+      <h1 class="text-xl font-semibold">Smart Shopper SA</h1>
+
+      <!-- Dark Mode Toggle Button -->
+      <button
+        id="dark-mode-toggle-button"
+        class="p-2 rounded-full hover:opacity-90 transition"
+        aria-label="Toggle dark mode"
+      >
+        <!-- Icon visible in light mode -->
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-6 h-6 block dark:hidden"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
+          />
+        </svg>
+        <!-- Icon visible in dark mode -->
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-6 h-6 hidden dark:block"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"
+          />
+        </svg>
+      </button>
+    </header>
+
+    <main
+      id="main-content"
+      class="flex-grow overflow-y-auto p-4 animate__animated animate__fadeIn"
+      style="
+        background: var(--main-bg);
+        color: var(--main-text);
+      "
+      role="main"
+    >
+      <!-- SEARCH TAB -->
+      <div id="search-tab" class="tab-content">
+        <div class="relative mb-6 flex items-center space-x-2">
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Search for groceries..."
+            class="flex-grow px-4 py-3 rounded-full border focus:outline-none focus:ring-2 focus:border-transparent"
+            style="
+              background: var(--input-bg);
+              color: var(--main-text);
+              border-color: var(--border-color);
+            "
+          />
+          <button
+            id="search-button"
+            class="p-3 rounded-full hover:opacity-90 transition flex-shrink-0"
+            style="background: var(--accent); color: var(--accent-text);"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="w-5 h-5"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div id="search-results-area">
+          <h2 class="text-lg font-medium mb-2">Results</h2>
+          <div
+            id="loading-indicator"
+            class="hidden text-center py-4 animate__animated animate__fadeIn"
+            style="opacity: 0.8;"
+          >
+            <svg
+              class="animate-spin h-8 w-8 mx-auto"
+              style="color: var(--accent);"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <p class="mt-2 text-sm">Searching...</p>
+          </div>
+          <div
+            id="no-results-message"
+            class="hidden text-center py-4"
+            style="opacity: 0.8;"
+          >
+            <p>No products found matching your search.</p>
+          </div>
+          <div id="search-results-container" class="space-y-3">
+            <!-- Search results injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- List Tab -->
+      <div id="list-tab" class="tab-content">
+        <div class="p-4">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">My Shopping Lists</h2>
+            <button
+              id="new-list-button"
+              class="p-2 rounded-full hover:opacity-90 transition flex-shrink-0"
+              style="background: var(--accent); color: var(--accent-text);"
+              title="Create New List"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+            </button>
+          </div>
+          <!-- Container for dynamically generated lists -->
+          <div id="lists-container" class="space-y-3">
+            <!-- Lists will be injected here by JavaScript -->
+            <!-- Example structure (will be generated):
+            <div data-list-id="..." class="list-item ..."> ... </div>
+            -->
+          </div>
+        </div>
+      </div>
+
+      <!-- List Items View (Initially Hidden) -->
+      <div id="list-items-view" class="hidden absolute inset-0 flex flex-col animate__animated" style="background: var(--main-bg); color: var(--main-text);">
+        <!-- Header for List Items View -->
+        <div class="p-4 flex items-center border-b flex-shrink-0" style="border-color: var(--border-color);">
+          <button id="back-to-lists-button" class="p-2 mr-2 rounded-full hover:opacity-90 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <h2 id="list-items-title" class="text-lg font-semibold flex-grow">List Name</h2>
+          <button id="delete-list-button" class="p-2 ml-2 rounded-full hover:opacity-90 transition text-red-500 dark:text-red-400" title="Delete This List">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+            </svg>
+          </button>
+        </div>
+        <!-- Container for items in the list -->
+        <div id="list-items-container" class="p-4 space-y-3 overflow-y-auto flex-grow">
+          <!-- Items will be injected here -->
+          <!-- Example structure:
+          <div class="list-item-entry ...">
+              <span>Product Name</span>
+              <button class="remove-item-button" data-item-id="...">Remove</button>
+          </div>
+          -->
+        </div>
+         <!-- Add Item Bar -->
+         <div class="p-3 border-t flex items-center space-x-2 flex-shrink-0" style="border-color: var(--border-color); background: var(--card-bg);">
+             <input
+                id="add-item-input"
+                type="text"
+                placeholder="Add item manually..."
+                class="flex-grow px-3 py-2 rounded-full border focus:outline-none focus:ring-2 focus:border-transparent"
+                style="
+                  background: var(--input-bg);
+                  color: var(--main-text); /* Use main text for input */
+                  border-color: var(--border-color);
+                "
+             />
+             <button
+                id="add-item-button"
+                class="p-2.5 rounded-full transition-all duration-200 hover:scale-110 active:scale-95 shadow-md hover:shadow-lg"
+                style="background: var(--accent); color: var(--accent-text);"
+                title="Add Item to List"
+             >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+             </button>
+         </div>
+      </div>
+
+      <!-- CARDS TAB -->
+      <div id="cards-tab" class="tab-content">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold">My Loyalty Cards</h2>
+          <button id="add-card-button" class="p-2 rounded-full bg-yellow-400 text-black shadow hover:scale-110 transition" title="Add New Card">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"/>
+            </svg>
+          </button>
+        </div>
+        <div id="cards-container" class="space-y-3">
+          <!-- Loyalty cards will be rendered here -->
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div id="settings-tab" class="tab-content">
+        <h2 class="text-lg font-semibold mb-4">Settings</h2>
+
+        <!-- Authentication Section -->
+        <div id="auth-container" class="mb-6 p-4 rounded-lg shadow-sm border" style="background: var(--card-bg); color: var(--card-text); border-color: var(--border-color);">
+          
+          <!-- Login/Signup Form (Initially Visible) -->
+          <div id="auth-forms">
+            <h3 class="text-md font-semibold mb-3">Login or Create Account</h3>
+            <form id="login-form" class="mb-4">
+              <input type="email" id="login-email" placeholder="Email" required class="w-full p-2 mb-2 border rounded" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
+              <input type="password" id="login-password" placeholder="Password" required class="w-full p-2 mb-2 border rounded" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
+              <button type="submit" class="w-full py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Login</button>
+            </form>
+            <p class="text-center text-sm mb-2">or</p>
+            <form id="signup-form">
+               <input type="email" id="signup-email" placeholder="Email" required class="w-full p-2 mb-2 border rounded" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
+               <input type="password" id="signup-password" placeholder="Password (min. 6 characters)" required class="w-full p-2 mb-2 border rounded" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
+               <button type="submit" class="w-full py-2 rounded bg-green-600 text-white hover:bg-green-700">Sign Up</button>
+            </form>
+            <p id="auth-error" class="text-red-500 text-sm mt-2 hidden"></p> <!-- For displaying auth errors -->
+          </div>
+
+          <!-- User Info & Logout (Initially Hidden) -->
+          <div id="user-info" class="hidden">
+             <h3 class="text-md font-semibold mb-2">Account</h3>
+             <p class="mb-3">Logged in as: <span id="user-email" class="font-medium"></span></p>
+             <!-- Existing Logout Button will be handled by JS -->
+          </div>
+        </div>
+        <!-- End Authentication Section -->
+
+        <div class="space-y-3">
+          <div
+            data-setting-name="Profile"
+            class="setting-item rounded-lg shadow-sm border cursor-pointer hover:scale-105 transition transform animate__animated animate__fadeInUp p-4"
+            style="
+              background: var(--card-bg);
+              color: var(--card-text);
+              border-color: var(--border-color);
+            "
+          >
+            <div class="flex justify-between items-center">
+              <p>Profile</p>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5 text-slate-400"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            </div>
+          </div>
+          <div
+            data-setting-name="Notifications"
+            class="setting-item rounded-lg shadow-sm border cursor-pointer hover:scale-105 transition transform animate__animated animate__fadeInUp p-4"
+            style="
+              background: var(--card-bg);
+              color: var(--card-text);
+              border-color: var(--border-color);
+            "
+          >
+            <div class="flex justify-between items-center">
+              <p>Notifications</p>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5 text-slate-400"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            </div>
+          </div>
+          <div
+            class="rounded-lg shadow-sm border flex justify-between items-center animate__animated animate__fadeInUp p-4"
+            style="
+              background: var(--card-bg);
+              color: var(--card-text);
+              border-color: var(--border-color);
+            "
+          >
+            <p>Dark Mode</p>
+            <label for="dark-mode-checkbox" class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="dark-mode-checkbox" class="sr-only peer" />
+              <div
+                class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"
+                style="border-color: var(--border-color);"
+              ></div>
+            </label>
+          </div>
+          <div
+            data-setting-name="About"
+            class="setting-item rounded-lg shadow-sm border cursor-pointer hover:scale-105 transition transform animate__animated animate__fadeInUp p-4"
+            style="
+              background: var(--card-bg);
+              color: var(--card-text);
+              border-color: var(--border-color);
+            "
+          >
+            <div class="flex justify-between items-center">
+              <p>About</p>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5 text-slate-400"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            </div>
+          </div>
+          <button
+            id="logout-button"
+            class="w-full mt-6 py-2.5 rounded-lg font-medium hover:opacity-90 transition border"
+            style="
+              background: #ffebeb;
+              color: #e02424;
+              border-color: #ffbdbd;
+            "
+          >
+            Log Out
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <nav
+      class="flex-shrink-0 animate__animated animate__fadeInUp"
+      style="
+        background-color: var(--nav-bg);
+        color: var(--nav-text);
+      "
+      role="navigation"
+    >
+      <button
+        id="nav-search"
+        data-tab="search-tab"
+        class="nav-button flex flex-col items-center justify-center w-1/4 p-2 rounded-lg transition hover:opacity-80"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-6 h-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+          />
+        </svg>
+        <span class="text-xs mt-1">Search</span>
+      </button>
+      <button
+        id="nav-list"
+        data-tab="list-tab"
+        class="nav-button flex flex-col items-center justify-center w-1/4 p-2 rounded-lg transition hover:opacity-80"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-6 h-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M8.25 6.75h7.5M8.25 12h7.5m-7.5 5.25h7.5M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+          />
+        </svg>
+        <span class="text-xs mt-1">My List</span>
+      </button>
+      <button
+        id="nav-cards"
+        data-tab="cards-tab"
+        class="nav-button flex flex-col items-center justify-center w-1/4 p-2 rounded-lg transition hover:opacity-80"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-6 h-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"
+          />
+        </svg>
+        <span class="text-xs mt-1">Cards</span>
+      </button>
+      <button
+        id="nav-settings"
+        data-tab="settings-tab"
+        class="nav-button flex flex-col items-center justify-center w-1/4 p-2 rounded-lg transition hover:opacity-80"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-6 h-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.004.827c-.293.24-.438.613-.43.992a6.759 6.759 0 0 1 0 1.257c-.008.379.137.752.43.991l1.005.828c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.759 6.759 0 0 1 0-1.257c.008-.379-.137-.752-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+          />
+        </svg>
+        <span class="text-xs mt-1">Settings</span>
+      </button>
+    </nav>
+  <!-- </div> -->
+
+  <div class="fab-container fixed bottom-6 right-0 z-50 flex flex-col items-end space-y-3">
+    <!-- Peeking Tab -->
+    <div id="fab-tab" class="fab-tab bg-yellow-400 text-black rounded-l-full w-7 h-14 flex items-center justify-center shadow-lg cursor-pointer absolute right-0 bottom-20 z-50">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </div>
+    <!-- FAB and actions (initially off-screen) -->
+    <div id="fab-slide" class="flex flex-col items-end space-y-3 mb-2 transition-all duration-300 translate-x-full">
+      <div id="fab-actions" class="flex flex-col items-end space-y-3 mb-2 opacity-0 pointer-events-none transition-all duration-300">
+        <button class="fab-action bg-white text-gray-800 shadow-lg flex items-center px-4 py-2 rounded-full text-base font-medium">
+          <svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.472-.148-.67.15-.198.297-.767.967-.94 1.164-.173.198-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.372-.01-.571-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.099 3.205 5.077 4.372.71.306 1.263.489 1.695.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.288.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+          WhatsApp
+        </button>
+        <button class="fab-action bg-white text-gray-800 shadow-lg flex items-center px-4 py-2 rounded-full text-base font-medium">
+          <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 17l4 4 4-4m-4-5v9"/></svg>
+          Copy Link
+        </button>
+      </div>
+      <button id="fab-share" class="fab-main bg-yellow-400 text-black shadow-xl rounded-full w-16 h-16 flex items-center justify-center text-3xl transition-transform duration-200 active:scale-95">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-3A2.25 2.25 0 0 0 8.25 5.25V9m7.5 0v10.5A2.25 2.25 0 0 1 13.5 21h-3a2.25 2.25 0 0 1-2.25-2.25V9m7.5 0H6.75" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center">
+    <div id="modal-content" class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-80 animate__animated">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="modal-title" class="text-lg font-semibold"></h3>
+        <button id="modal-close" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div id="modal-body" class="text-sm"></div>
+    </div>
+  </div>
+
+  <!-- Add Card Modal -->
+  <div id="add-card-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
+    <div class="w-full h-full max-w-none max-h-none flex flex-col justify-center items-center p-0 m-0 bg-transparent">
+      <div id="barcode-scanner" class="hidden w-full h-full flex flex-col justify-center items-center">
+        <div class="relative w-full max-w-md h-80 sm:h-[32rem] flex flex-col justify-center items-center">
+          <div id="barcode-reader-container" class="relative w-full h-full flex flex-col justify-center items-center">
+            <div id="barcode-reader" class="w-full h-full rounded-lg border border-gray-300 bg-black/80 overflow-hidden"></div>
+            <!-- Animated scan line -->
+            <div class="absolute left-0 right-0 h-0.5 bg-red-500 animate-scanline pointer-events-none" style="top:10%"></div>
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div class="w-64 h-16 border-2 border-red-500 opacity-30 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs mt-2 text-center text-white drop-shadow">Make sure the barcode is well-lit and centered in the frame</p>
+        <ul class="text-xs mt-1 text-white/80 space-y-1 mb-2 text-center">
+          <li>• Hold the barcode 4-8 inches (10-20cm) from camera</li>
+          <li>• Ensure good lighting on the barcode</li>
+          <li>• Keep the barcode still and flat</li>
+          <li>• Try different angles if not scanning</li>
+        </ul>
+        <div class="flex mt-2 space-x-2 w-full max-w-md px-4">
+          <button type="button" id="close-barcode-btn" class="w-1/2 bg-gray-200 text-black py-2 rounded">Manual Entry</button>
+          <button type="button" id="switch-camera-btn" class="w-1/2 bg-blue-500 text-white py-2 rounded">Switch Camera</button>
+        </div>
+        <p id="scanner-status" class="text-center text-sm mt-2 text-white drop-shadow"></p>
+      </div>
+      <form id="add-card-form" class="space-y-3 w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 mt-4">
+        <h3 class="text-lg font-semibold mb-2">Add Loyalty Card</h3>
+        <div>
+          <label class="block mb-1">Retailer</label>
+          <input type="text" id="card-retailer" class="w-full px-3 py-2 rounded border" required>
+        </div>
+        <div>
+          <label class="block mb-1">Card Number</label>
+          <input type="text" id="card-number" class="w-full px-3 py-2 rounded border" required placeholder="Enter card number or use scanner">
+          <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">Scan your barcode or enter the number manually</p>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button type="button" id="cancel-add-card" class="px-4 py-2 rounded bg-gray-200">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded bg-yellow-400 text-black">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- List Selection Modal -->
+  <div id="list-selection-modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black opacity-50" id="list-selection-overlay"></div>
+    <div class="relative z-10 max-w-md mx-auto mt-20 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 animate__animated animate__fadeInDown">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold" id="list-selection-title">Add to list</h3>
+        <button id="list-selection-close" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <p class="mb-4" id="list-selection-product-info"></p>
+      <div id="list-selection-options" class="space-y-2 mb-4">
+        <!-- List options will be inserted here by JS -->
+      </div>
+      <div class="text-right mt-4">
+        <button id="list-selection-cancel" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 mr-2">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card Detail Modal -->
+  <div id="card-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
+    <div class="w-full max-w-md mx-auto bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 m-4 relative">
+      <button id="close-card-detail" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <div id="card-detail-content" class="text-center">
+        <!-- Card details will be inserted here by JS -->
+        <div class="mb-6">
+          <h3 id="card-detail-retailer" class="text-xl font-bold mb-2"></h3>
+          <p id="card-detail-number" class="text-sm text-gray-600 dark:text-gray-400 mb-4"></p>
+          <div class="flex justify-center">
+            <svg id="card-barcode" class="w-full"></svg>
+          </div>
+        </div>
+        <button id="fullscreen-barcode" class="w-full bg-blue-500 text-white py-2 rounded-lg">
+          Show Fullscreen for Scanning
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add JsBarcode library for generating barcodes -->
+  <script src="js/lib/JsBarcode.all.min.js"></script>
+  <!-- Add html5-qrcode library with specific version before app.js -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(reg) {
+            console.log('Service worker registered.', reg);
+          })
+          .catch(function(error) {
+            console.error('Service worker registration failed:', error);
+          });
+      });
+    }
+  </script>
+
+  <!-- Add scanline animation -->
+  <style>
+  @keyframes scanline {
+    0% { top: 10%; }
+    100% { top: 90%; }
+  }
+  .animate-scanline {
+    animation: scanline 1.5s linear infinite alternate;
+  }
+  </style>
+</body>
+</html>

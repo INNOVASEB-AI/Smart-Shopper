@@ -1,0 +1,362 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  We are splitting the phone into segments:
+  - Header: var(--header-bg), var(--header-text)
+  - Main: var(--main-bg), var(--main-text)
+  - Nav: var(--nav-bg), var(--nav-text)
+  - Cards: var(--card-bg), var(--card-text)
+  - Accents: var(--accent), var(--accent-text)
+  - Borders/Inputs: var(--border-color), var(--input-bg)
+*/
+
+/* --------------------------------------------
+   LIGHT MODE VARIABLES (with improved contrast)
+--------------------------------------------- */
+:root {
+  /* HEADER */
+  --header-bg: #E05D50;   /* Darker red for better contrast with white text */
+  --header-text: #FFFFFF; /* White header text */
+
+  /* MAIN */
+  --main-bg: linear-gradient(to bottom, #FFECD2, #FFD3AE); /* Peach gradient */
+  --main-text: #333333;
+
+  /* NAVIGATION */
+  --nav-bg: #E05D50;      /* Same as header for a unified bar color */
+  --nav-text: #FFFFFF;
+
+  /* CARDS */
+  --card-bg: #FFFFFF;     /* White card on peach background */
+  --card-text: #333333;
+
+  /* ACCENTS */
+  --accent: #D8B400;      /* Darker yellow for better contrast */
+  --accent-text: #000000; /* Black text on yellow for better contrast */
+
+  /* BORDERS & INPUTS */
+  --border-color: #FFD9C2;/* Subtle border color to match peach vibe */
+  --input-bg: #FFF8F2;    /* Slightly tinted input background */
+  
+  /* FOCUS STATE */
+  --focus-ring: #2563EB;  /* Tailwind blue-600 for focus rings */
+}
+
+/* --------------------------------------------
+   DARK MODE VARIABLES (with improved contrast)
+--------------------------------------------- */
+.dark {
+  /* HEADER */
+  --header-bg: #1A1A1D;    /* Charcoal */
+  --header-text: #FFFFFF;
+
+  /* MAIN */
+  --main-bg: #141416;      /* Deep dark background */
+  --main-text: #FFFFFF;
+
+  /* NAVIGATION */
+  --nav-bg: #1A1A1D;       /* Charcoal nav */
+  --nav-text: #FFFFFF;
+
+  /* CARDS */
+  --card-bg: #2B2B2E;      /* Slightly lighter than main for contrast */
+  --card-text: #FFFFFF;
+
+  /* ACCENTS */
+  --accent: #E68A00;       /* Darker orange for better contrast */
+  --accent-text: #000000;  /* Dark text on bright orange */
+
+  /* BORDERS & INPUTS */
+  --border-color: #4B4B4F; /* Increased contrast for borders */
+  --input-bg: #1F1F22;     /* Slightly lighter than main bg */
+  
+  /* FOCUS STATE */
+  --focus-ring: #3B82F6;   /* Tailwind blue-500 for focus rings */
+}
+
+/* --------------------------------------------
+   PHONE FRAME STYLES
+--------------------------------------------- */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden; /* Prevents double scrollbars */
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+main {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: 60px !important; /* Add space at the bottom to prevent content from being hidden behind the navigation bar */
+}
+
+.phone-mock {
+  width: 375px;     /* typical phone width */
+  height: 812px;    /* typical phone height */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 30px; /* phone corner radius */
+  overflow: hidden;
+  border: 8px solid #4a5568; /* phone bezel */
+  position: relative;
+  margin: 2rem auto;
+  display: flex; /* let .screen-content fill it */
+  flex-direction: column;
+}
+
+/* We'll let header/main/nav define their own backgrounds. */
+
+/* --------------------------------------------
+   TAB CONTENT HIDDEN/SHOWN
+--------------------------------------------- */
+.tab-content {
+  display: none;
+  height: 100%;
+  overflow-y: auto;
+}
+.tab-content.active {
+  display: block;
+}
+
+/* Custom scrollbar for tabs */
+.tab-content::-webkit-scrollbar {
+  width: 4px;
+}
+.tab-content::-webkit-scrollbar-thumb {
+  background-color: #9CA3AF; /* gray-400 */
+  border-radius: 20px;
+}
+.dark .tab-content::-webkit-scrollbar-thumb {
+  background-color: #4B5563; /* gray-600 */
+}
+
+/* --------------------------------------------
+   LIST ITEMS VIEW STYLES
+--------------------------------------------- */
+/* Ensure the view covers the main area */
+#list-items-view {
+  z-index: 10; /* Make sure it overlays the tabs */
+}
+
+/* Style for individual items within the list view */
+.list-item-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem; /* py-3 px-4 */
+    border-radius: 0.5rem; /* rounded-lg */
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg); /* Use card background */
+    color: var(--card-text); /* Use card text color */
+    transition: background-color 0.2s ease;
+}
+
+.list-item-entry:hover {
+    /* Optional: slightly change background on hover */
+    /* background-color: var(--input-bg); */
+}
+
+.remove-item-button {
+    padding: 0.25rem 0.5rem; /* px-2 py-1 */
+    font-size: 0.75rem; /* text-xs */
+    border-radius: 0.375rem; /* rounded-md */
+    background-color: #ffebeb; /* Light red background */
+    color: #b91c1c; /* Darker red text for better contrast */
+    border: 1px solid #ffbdbd; /* Red border */
+    transition: opacity 0.2s ease;
+}
+.remove-item-button:hover {
+    opacity: 0.8;
+}
+
+.dark .remove-item-button {
+    background-color: rgba(220, 38, 38, 0.3); /* Darker red background with better opacity */
+    color: #ef4444; /* Red-500 for better contrast */
+    border-color: rgba(220, 38, 38, 0.6);
+}
+
+/* --------------------------------------------
+   NAVIGATION ACTIVE STATE
+--------------------------------------------- */
+.nav-button.active {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* Navigation Bar Fix - Display tabs horizontally */
+nav {
+  display: flex !important; /* Force display: flex */
+  flex-direction: row !important; /* Ensure horizontal layout */
+  justify-content: space-between !important; /* Space tabs evenly */
+  width: 100% !important; /* Full width */
+  position: fixed !important; /* Fix at bottom of screen */
+  bottom: 0 !important; /* Position at bottom */
+  left: 0 !important; /* Align to left edge */
+  padding: 0.5rem 0 !important; /* Add padding top/bottom */
+  z-index: 50 !important; /* Ensure it's above content */
+}
+
+.card, .list-item-entry, .search-result-card {
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.card:hover, .list-item-entry:hover, .search-result-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  transform: scale(1.03);
+}
+
+/* All cards, list items, and search results */
+.card, .list-item-entry, .search-result-card, .list-item, .setting-item, .loyalty-card {
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.card:hover, .list-item-entry:hover, .search-result-card:hover, .list-item:hover, .setting-item:hover, .loyalty-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  transform: scale(1.03);
+}
+
+/* All major buttons (including nav, add, FAB) */
+button, .nav-button {
+  transition: all 0.2s cubic-bezier(.4,0,.2,1);
+}
+button:hover, .nav-button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+button:active, .nav-button:active {
+  transform: scale(0.96);
+}
+
+#modal-overlay {
+  backdrop-filter: blur(2px);
+  transition: background 0.3s;
+}
+#modal-content {
+  min-width: 260px;
+  max-width: 90vw;
+}
+
+/* Headings */
+h1, h2, h3 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1rem; }
+
+/* Section spacing */
+.p-4, .p-6 {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+}
+.mb-4, .mb-6 {
+  margin-bottom: 1.5rem !important;
+}
+
+.fab-container {
+  right: 0;
+  left: auto !important;
+}
+
+.fab-main {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.18), 0 1.5px 4px rgba(0,0,0,0.12);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.fab-main:active {
+  transform: scale(0.95);
+}
+
+.fab-action {
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: background 0.2s, box-shadow 0.2s;
+  opacity: 1;
+}
+
+.fab-action:active {
+  background: #f3f4f6;
+}
+
+.fab-action svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.fab-tab {
+  /* Peeking tab style */
+  position: absolute;
+  right: 0;
+  bottom: 100px; /* Adjust to match FAB position */
+  z-index: 51;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+.fab-tab.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#fab-slide {
+  position: relative;
+  right: 0;
+  transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  will-change: transform;
+}
+
+#fab-slide.open {
+  transform: translateX(-100px); /* Slide in by 100px, adjust as needed */
+}
+
+#fab-slide {
+  transform: translateX(100%); /* Off-screen by default */
+}
+
+#fab-slide.open {
+  transform: translateX(0);
+}
+
+/* Accessibility: Focus styles for all interactive elements */
+a:focus, button:focus, input:focus, select:focus, textarea:focus, [tabindex]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* Skip-to-content link for keyboard users */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 8px;
+  background-color: var(--accent);
+  color: var(--accent-text);
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* Support for reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
