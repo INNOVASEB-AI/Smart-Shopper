@@ -9,6 +9,8 @@ const logger = require('../logger').createScraperLogger('ScrapyIntegration');
 
 // Path to the Python script
 const PYTHON_SCRIPT = path.join(__dirname, 'run_spider.py');
+// Prefer python3 by default; allow override via env
+const PYTHON_BIN = process.env.PYTHON_BIN || 'python3';
 
 // Check if the script exists
 if (!fs.existsSync(PYTHON_SCRIPT)) {
@@ -56,10 +58,10 @@ function runSpider(spider, options = {}) {
       args.push('--log-level', options.logLevel);
     }
     
-    logger.info(`Running Scrapy spider: ${spider} with options: ${JSON.stringify(options)}`);
+    logger.info(`Running Scrapy spider: ${spider} with options: ${JSON.stringify(options)} (using ${PYTHON_BIN})`);
     
     // Spawn Python process
-    const pythonProcess = spawn('python', args);
+    const pythonProcess = spawn(PYTHON_BIN, args);
     
     let stdout = '';
     let stderr = '';
