@@ -49,6 +49,16 @@ async function scrapeMakro(query) {
 
             const name = nameElement ? nameElement.innerText.trim() : null;
             const productLink = nameElement ? nameElement.getAttribute('href') : null;
+            let url = null;
+            if (productLink) {
+              if (productLink.startsWith('/')) {
+                url = `https://www.makro.co.za${productLink}`;
+              } else if (productLink.startsWith('http')) {
+                url = productLink;
+              } else {
+                url = `https://www.makro.co.za/${productLink.replace(/^\/+/, '')}`;
+              }
+            }
 
             const priceElement = nameElement ? nameElement.nextElementSibling : null;
             const priceText = priceElement ? priceElement.innerText.trim() : null;
@@ -80,8 +90,8 @@ async function scrapeMakro(query) {
 
             const retailer = 'Makro';
 
-            if (name && price && id) {
-              items.push({ retailer, name, price, id, image: image || null });
+            if (name && price && id && url) {
+              items.push({ retailer, name, price, id, image: image || null, url });
             }
           } catch (e) {
             // Using console.error here because this runs in the browser context

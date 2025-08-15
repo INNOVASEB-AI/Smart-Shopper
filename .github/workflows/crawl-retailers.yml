@@ -43,7 +43,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install python-dotenv
+          pip install -r backend/scrapy_scrapers/requirements.txt
           pip install crawl4ai
           pip install aiohttp aiofiles
           

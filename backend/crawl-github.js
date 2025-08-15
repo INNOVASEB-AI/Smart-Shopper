@@ -94,7 +94,7 @@ async function crawlAllRetailers() {
     {retailer: "Pick n Pay", func: scrapePicknPay},
     {retailer: "Makro", func: scrapeMakro},
     {retailer: "Woolworths", func: scrapeWoolworths},
-    {retailer: "PriceCheck", func: scrapePriceCheck},
+    // {retailer: "PriceCheck", func: scrapePriceCheck}, // Disabled: consistently 403s in CI
   ];
   
   const results = [];

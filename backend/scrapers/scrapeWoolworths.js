@@ -13,7 +13,7 @@ async function scrapeWoolworths(query) {
   // Use the helper function to handle the common scraping logic
   const { results, error } = await scrapeWithPuppeteer('Woolworths', searchUrl, async (page, retailerLogger) => {
     // --- Wait for product items and Extract Data ---
-    const productItemSelector = 'div.product-list__item'; // *** ASSUMED SELECTOR - Verify this ***
+    const productItemSelector = 'div.product-list__item, li.product-grid__item, article';
     
     try {
       await waitForSelectorWithRetry(page, productItemSelector, retailerLogger, {
@@ -30,23 +30,35 @@ async function scrapeWoolworths(query) {
     // --- Scrape products on the page ---
     const products = await page.evaluate((selector) => {
       const items = [];
-      const itemElements = document.querySelectorAll(selector);
-      
-      // --- Add logging for the first item's HTML ---
-      // if (itemElements.length > 0) {
-      //   console.log('--- HTML of first WOOLIES itemElement ---');
-      //   console.log(itemElements[0].outerHTML);
-      //   console.log('----------------------------------------');
-      // }
-      // --- End logging ---
-      
-      // Iterate using the fetched itemElements to avoid querying again
-      itemElements.forEach((_element) => {
-        // --- Temporarily commented out due to rendering/selector issues ---
-        // Code that will use _element is commented out and will be implemented
-        // once selector issues are fixed
+      const elements = Array.from(document.querySelectorAll(selector));
+
+      elements.forEach(el => {
+        try {
+          const anchor = el.querySelector('a');
+          const urlRel = anchor ? anchor.getAttribute('href') : null;
+          let url = null;
+          if (urlRel) {
+            if (urlRel.startsWith('/')) url = `https://www.woolworths.co.za${urlRel}`;
+            else if (urlRel.startsWith('http')) url = urlRel;
+          }
+
+          const nameEl = el.querySelector('.product__name, [data-testid="product-name"], h3, h2');
+          const name = nameEl ? nameEl.textContent.trim() : null;
+
+          const priceEl = el.querySelector('.price, [data-testid="product-price"], .product__price');
+          let price = null;
+          if (priceEl) {
+            const text = priceEl.textContent.replace(/,/g, '.');
+            const match = text.match(/R\s*([0-9]+(?:\.[0-9]{1,2})?)/i);
+            if (match) price = parseFloat(match[1]).toFixed(2);
+          }
+
+          if (url && name && price) {
+            items.push({ retailer: 'Woolworths', url, name, price });
+          }
+        } catch (e) {}
       });
-      
+
       return items;
     }, productItemSelector);
     

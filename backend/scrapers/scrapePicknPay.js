@@ -12,7 +12,7 @@ async function scrapePicknPay(query) {
   
   // Use the helper function to handle the common scraping logic
   const { results, error } = await scrapeWithPuppeteer('Pick n Pay', searchUrl, async (page, retailerLogger) => {
-    const productItemSelector = 'div.product-grid-item';
+    const productItemSelector = 'a.product-grid-item, div.product-grid-item';
     
     // Wait for product items to appear with retry logic
     await waitForSelectorWithRetry(page, productItemSelector, retailerLogger, {
@@ -22,15 +22,35 @@ async function scrapePicknPay(query) {
     // Extract product information
     const products = await page.evaluate((selector) => {
       const items = [];
-      const itemElements = document.querySelectorAll(selector);
-      
-      // Using console.log here because this runs in the browser context
-      console.log(`--- Found ${itemElements.length} PnP elements matching ${selector} ---`);
-      
-      // Here we would parse the product data from the page
-      // This part is left empty in the original code, you might want to implement
-      // the actual extraction logic here
-      
+      const elements = Array.from(document.querySelectorAll(selector));
+
+      elements.forEach((el) => {
+        try {
+          // Ensure anchor
+          const anchor = el.tagName.toLowerCase() === 'a' ? el : el.querySelector('a');
+          const urlRel = anchor ? anchor.getAttribute('href') : null;
+          let url = null;
+          if (urlRel) {
+            if (urlRel.startsWith('/')) url = `https://www.pnp.co.za${urlRel}`;
+            else if (urlRel.startsWith('http')) url = urlRel;
+          }
+
+          const nameEl = el.querySelector('[data-testid="product-tile-name"], .product-name, h3');
+          const name = nameEl ? nameEl.textContent.trim() : null;
+
+          const priceEl = el.querySelector('[data-testid="product-tile-price"], .price, .amount');
+          let price = null;
+          if (priceEl) {
+            const text = priceEl.textContent.replace(/,/g, '.');
+            const match = text.match(/R\s*([0-9]+(?:\.[0-9]{1,2})?)/i);
+            if (match) price = parseFloat(match[1]).toFixed(2);
+          }
+
+          if (url && name && price) {
+            items.push({ retailer: 'Pick n Pay', url, name, price });
+          }
+        } catch (e) {}
+      });
       return items;
     }, productItemSelector);
     
