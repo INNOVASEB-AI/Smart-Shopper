@@ -1,0 +1,9 @@
+scrapy==2.11.0
+python-dotenv==1.0.1
+requests==2.31.0
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.27
+alembic==1.13.1
+scrapy-playwright==0.0.34
+scrapy-rotating-proxies==0.6.2
+scrapy-user-agents==0.1.1 

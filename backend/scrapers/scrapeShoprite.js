@@ -23,6 +23,24 @@ function extractShopriteProduct($, element, retailer) {
     const price = productJson.price;
     const productId = productJson.id;
     const imageUrl = productJson.product_image_url;
+    
+    // Extract product URL from the element
+    const productLink = $(element).find('a.product-listening-click').attr('href');
+    let productUrl = '';
+    
+    if (productLink) {
+      // Ensure it's a full URL
+      if (productLink.startsWith('/')) {
+        productUrl = `https://www.shoprite.co.za${productLink}`;
+      } else if (productLink.startsWith('http')) {
+        productUrl = productLink;
+      }
+    }
+    
+    // If we still don't have a URL, create one based on the product ID
+    if (!productUrl && productId) {
+      productUrl = `https://www.shoprite.co.za/p/${productId}`;
+    }
 
     if (name && price && productId) {
       return {
@@ -31,6 +49,7 @@ function extractShopriteProduct($, element, retailer) {
         price: price.toString(),
         retailer: retailer,
         imageUrl: imageUrl || null,
+        url: productUrl || `https://www.shoprite.co.za/search-products/${encodeURIComponent(name)}`
       };
     }
   } catch (parseError) {

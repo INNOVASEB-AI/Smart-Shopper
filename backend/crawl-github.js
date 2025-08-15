@@ -31,11 +31,52 @@ try {
 
 const db = admin.firestore();
 
+// Helper function to add delay between operations
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to retry a function with exponential backoff
+async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) {
+  let retries = 0;
+  let currentDelay = initialDelay;
+  
+  while (retries < maxRetries) {
+    try {
+      return await fn();
+    } catch (error) {
+      retries++;
+      if (retries >= maxRetries) {
+        throw error; // Re-throw the error if we've exceeded max retries
+      }
+      
+      console.log(`Attempt ${retries} failed, retrying in ${currentDelay}ms...`);
+      await delay(currentDelay);
+      
+      // Exponential backoff with jitter
+      currentDelay = currentDelay * 2 + Math.floor(Math.random() * 1000);
+    }
+  }
+}
+
 /**
  * Run all scrapers and save results to Firestore
  */
 async function crawlAllRetailers() {
   console.log("Starting crawler for all retailers...");
+  
+  // Test Firestore connection
+  try {
+    const testRef = db.collection("test").doc("connection-test");
+    await testRef.set({ timestamp: Date.now() });
+    const testDoc = await testRef.get();
+    if (testDoc.exists) {
+      console.log("Firestore connection successful! Data was written and read back.");
+    } else {
+      console.error("Firestore connection might have issues: Write succeeded but read failed.");
+    }
+  } catch (error) {
+    console.error("Firestore connection test failed:", error);
+    throw error; // Stop the process if we can't connect to Firestore
+  }
   
   // Use multiple search terms to get a variety of products
   const searchTerms = [
@@ -45,9 +86,6 @@ async function crawlAllRetailers() {
     "chicken",
     "rice"
   ];
-  
-  // Select a random search term
-  const searchQuery = searchTerms[Math.floor(Math.random() * searchTerms.length)];
   
   // Define retailers and their corresponding scraper functions
   const retailerScrapers = [
@@ -59,33 +97,67 @@ async function crawlAllRetailers() {
     {retailer: "PriceCheck", func: scrapePriceCheck},
   ];
   
-  // Run scrapers in parallel
-  console.log(`Scraping retailers with query: "${searchQuery}"`);
-  const scraperPromises = retailerScrapers.map(s => s.func(searchQuery));
-  const settledResults = await Promise.allSettled(scraperPromises);
+  const results = [];
+  
+  // Iterate all search terms; for each term, run all retailers in sequence with delays
+  for (const searchQuery of searchTerms) {
+    // Run scrapers with delay between them to avoid getting blocked
+    console.log(`Scraping retailers with query: "${searchQuery}"`);
+    
+    // Run each scraper with a delay between them
+    for (const {retailer, func} of retailerScrapers) {
+      try {
+        console.log(`Starting scraper for ${retailer} (term: ${searchQuery})...`);
+        
+        if (retailer === "PriceCheck") {
+          console.log(`Using PriceCheck function: ${func.name}`);
+        }
+        
+        const result = await retryWithBackoff(async () => {
+          return await func(searchQuery);
+        });
+        
+        results.push({ status: "fulfilled", retailer, value: result });
+        console.log(`Completed scraper for ${retailer} (term: ${searchQuery})`);
+        
+        console.log(`Waiting 15 seconds before starting the next retailer scraper...`);
+        await delay(15000);
+      } catch (error) {
+        console.error(`Error scraping ${retailer} (term: ${searchQuery}):`, error.message || error);
+        results.push({ status: "rejected", retailer, reason: error });
+      }
+    }
+    // Short pause between terms to reduce load
+    console.log('Waiting 20 seconds before the next search term...');
+    await delay(20000);
+  }
   
   // Collect and process results
   const items = [];
-  settledResults.forEach((result, index) => {
-    const retailer = retailerScrapers[index].retailer;
-    console.log(`Results for ${retailer}: ${result.status}`);
+  
+  results.forEach(({status, retailer, value, reason}) => {
+    console.log(`Results for ${retailer}: ${status}`);
     
-    if (result.status === "fulfilled" && !result.value.error && result.value.results) {
-      console.log(`  Found ${result.value.results.length} items from ${retailer}`);
+    if (status === "fulfilled" && value && !value.error && value.results) {
+      const resultCount = value.results?.length || 0;
+      console.log(`  Found ${resultCount} items from ${retailer}`);
       
-      const transformedResults = result.value.results.map(item => ({
-        url: item.url || "",
-        name: item.name || item.title || "",
-        price: parseFloat(item.price) || 0,
-        store: retailer,
-        crawled: new Date().toISOString(),
-      }));
-      
-      items.push(...transformedResults);
-    } else if (result.status === "rejected") {
-      console.error(`  Error scraping ${retailer}:`, result.reason);
-    } else if (result.value?.error) {
-      console.error(`  Error scraping ${retailer}:`, result.value.message || "Unknown error");
+      if (resultCount > 0) {
+        const transformedResults = value.results.map(item => ({
+          url: item.url || "",
+          name: item.name || item.title || "",
+          price: parseFloat(item.price) || 0,
+          store: retailer,
+          crawled: new Date().toISOString(),
+        })).filter(item => item.url && item.name && item.price > 0); // Filter out incomplete items
+        
+        items.push(...transformedResults);
+        console.log(`  Processed ${transformedResults.length} valid items from ${retailer}`);
+      }
+    } else if (status === "rejected") {
+      console.error(`  Error scraping ${retailer}:`, reason?.message || "Unknown error");
+    } else if (value?.error) {
+      console.error(`  Error scraping ${retailer}:`, value.message || "Unknown error");
     }
   });
   
@@ -118,11 +190,33 @@ async function crawlAllRetailers() {
         console.log(`Batch ${Math.floor(i/batchSize) + 1} committed: ${currentBatch.length} items`);
       }
       
+      // Verify data was saved by reading back one item
+      if (items.length > 0) {
+        try {
+          const firstItem = items[0];
+          const id = encodeURIComponent(`${firstItem.store}|${firstItem.url}`);
+          console.log(`Verifying saved data by reading document ID: ${id}`);
+          const docRef = db.collection("prices").doc(id);
+          const docSnap = await docRef.get();
+          
+          if (docSnap.exists) {
+            console.log("Verification successful! Data was saved correctly:");
+            console.log(JSON.stringify(docSnap.data(), null, 2));
+          } else {
+            console.error("Verification failed! Document does not exist after saving.");
+          }
+        } catch (verifyError) {
+          console.error("Error verifying saved data:", verifyError);
+        }
+      }
+      
       console.log(`Successfully saved ${items.length} items to Firestore!`);
     } catch (error) {
       console.error("Error saving to Firestore:", error);
       throw error; // Let the GitHub Action know there was an error
     }
+  } else {
+    console.warn("No valid items found to save to Firestore!");
   }
   
   return items;

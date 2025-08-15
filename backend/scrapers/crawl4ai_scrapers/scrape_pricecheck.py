@@ -7,7 +7,6 @@ import asyncio
 import json
 import os
 import sys
-from dotenv import load_dotenv
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from urllib.parse import quote
@@ -17,11 +16,13 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from logger import logger
 
 # Load crawl4ai
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
-from crawl4ai.extraction_strategy import JsonCssExtractionStrategy
-
-# Load environment variables from .env file
-load_dotenv()
+try:
+    from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+    from crawl4ai.extraction_strategy import JsonCssExtractionStrategy
+    CRAWL4AI_AVAILABLE = True
+except ImportError:
+    logger.error("crawl4ai not available. Make sure to install it with 'pip install crawl4ai'")
+    CRAWL4AI_AVAILABLE = False
 
 # Configuration for PriceCheck scraper
 PRICECHECK_SCHEMA = {
@@ -78,16 +79,28 @@ async def scrape_pricecheck(query: str) -> List[Dict[str, Any]]:
     scraper_logger = logger.child({"retailer": "PriceCheck"})
     scraper_logger.info(f"Scraping PriceCheck for query: {query}")
     
+    # Check if crawl4ai is available
+    if not CRAWL4AI_AVAILABLE:
+        scraper_logger.error("crawl4ai module not available. Cannot scrape PriceCheck.")
+        return []
+    
     # Encode the query for URL
     encoded_query = quote(query)
     search_url = f"https://www.pricecheck.co.za/search?search={encoded_query}"
     
     # Configure browser settings
     browser_config = BrowserConfig(
-        headless=True,  # Run in headless mode (no visible browser)
-        stealth_mode=True,  # Use stealth mode to avoid detection
-        verbose=True,  # Show verbose logging
-        timeout=60000  # Increase timeout for potentially slow pages
+        headless=True,
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        viewport={"width": 1920, "height": 1080},
+        extra_headers={
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Cache-Control": "max-age=0"
+        }
     )
     
     # Configure the extraction strategy
@@ -144,12 +157,36 @@ async def scrape_pricecheck(query: str) -> List[Dict[str, Any]]:
                     # Add retailer information
                     product["retailer"] = "PriceCheck"
                     
-                    # Extract product ID from product_link if available
+                    # Extract product ID and ensure URL is properly formatted
+                    product_url = ""
                     if product.get("product_link"):
-                        # ID is usually in the URL path
-                        parts = product["product_link"].split("/")
+                        link = product["product_link"]
+                        
+                        # Ensure it's a full URL
+                        if link.startswith("/"):
+                            product_url = f"https://www.pricecheck.co.za{link}"
+                        elif link.startswith("http"):
+                            product_url = link
+                        else:
+                            product_url = f"https://www.pricecheck.co.za/{link}"
+                        
+                        # Extract ID from URL
+                        parts = product_url.split("/")
                         if len(parts) > 1:
                             product["id"] = parts[-1]
+                    
+                    # If we didn't get a URL from product_link, create a fallback URL
+                    if not product_url and product.get("name"):
+                        encoded_name = quote(product["name"])
+                        product_url = f"https://www.pricecheck.co.za/search?search={encoded_name}"
+                    
+                    # Set the URL field to ensure compatibility with the rest of the application
+                    product["url"] = product_url
+                    
+                    # Rename fields to match the expected format
+                    # Rename 'name' to 'title' if needed for compatibility
+                    if "name" in product and "title" not in product:
+                        product["title"] = product["name"]
                     
                     processed_products.append(product)
                 
@@ -169,8 +206,10 @@ if __name__ == "__main__":
     
     async def main():
         results = await scrape_pricecheck(query)
+        print(json.dumps(results, indent=2))  # Print results as JSON
         print(f"Found {len(results)} products")
-        for i, product in enumerate(results[:5], 1):  # Print first 5 results
-            print(f"{i}. {product.get('name')} - {product.get('price')}")
+        if results:
+            for i, product in enumerate(results[:5], 1):  # Print first 5 results
+                print(f"{i}. {product.get('name')} - {product.get('price')} - {product.get('url')}")
     
     asyncio.run(main()) 

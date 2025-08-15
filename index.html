@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <!-- Security: Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" 
+        content="default-src 'self'; 
+                 script-src 'self' https://cdn.tailwindcss.com https://www.gstatic.com/firebasejs/ 'unsafe-inline'; 
+                 style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline'; 
+                 font-src 'self' https://fonts.gstatic.com; 
+                 img-src 'self' data: https:; 
+                 connect-src 'self' http://localhost:3001 http://127.0.0.1:3001 https://*.firebaseio.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com;">
   <title>Smart Shopper SA - Vibrant Redesign</title>
   
   <!-- Tailwind CSS via CDN -->
@@ -223,55 +231,92 @@
       </div>
 
       <!-- List Items View (Initially Hidden) -->
-      <div id="list-items-view" class="hidden absolute inset-0 flex flex-col animate__animated" style="background: var(--main-bg); color: var(--main-text);">
+      <div id="list-items-view" class="hidden animate__animated" style="background: var(--main-bg); color: var(--main-text);">
         <!-- Header for List Items View -->
-        <div class="p-4 flex items-center border-b flex-shrink-0" style="border-color: var(--border-color);">
-          <button id="back-to-lists-button" class="p-2 mr-2 rounded-full hover:opacity-90 transition">
+        <div class="p-4 flex items-center border-b flex-shrink-0" style="border-color: var(--border-color); background: var(--header-bg); color: var(--header-text); position: sticky; top: 0; z-index: 50;">
+          <button id="back-to-lists-button" class="p-2 rounded-full hover:opacity-90 transition" style="color: var(--header-text);">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <h2 id="list-items-title" class="text-lg font-semibold flex-grow">List Name</h2>
-          <button id="delete-list-button" class="p-2 ml-2 rounded-full hover:opacity-90 transition text-red-500 dark:text-red-400" title="Delete This List">
+          <!-- This element is shown when not in add mode -->
+          <h1 id="list-items-title" class="flex-1 truncate font-medium text-lg ml-1"></h1>
+          
+          <!-- This element is shown when in add mode -->
+          <div class="header-search-box">
+            <div class="search-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
+            </div>
+            <input type="text" id="add-item-input" placeholder="Add new item" class="w-full rounded-full focus:outline-none focus:ring-2 focus:border-transparent">
+          </div>
+          
+          <!-- These buttons toggle based on mode -->
+          <button id="delete-list-button" class="ml-auto p-2 text-red-500 hover:text-red-600 transition" title="Delete List">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
             </svg>
           </button>
+          <button id="add-item-manual-btn" class="ml-2 p-2 rounded-full transition-all duration-200 hover:scale-110 active:scale-95 shadow-md hover:shadow-lg" style="background: #ffc107; color: black;" title="Add Item to List">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+          </button>
         </div>
-        <!-- Container for items in the list -->
-        <div id="list-items-container" class="p-4 space-y-3 overflow-y-auto flex-grow">
-          <!-- Items will be injected here -->
-          <!-- Example structure:
-          <div class="list-item-entry ...">
-              <span>Product Name</span>
-              <button class="remove-item-button" data-item-id="...">Remove</button>
+
+        <!-- 1) Empty-list state -->
+        <div id="empty-list-view" class="flex flex-col items-center justify-center h-full">
+          <img src="images/avocado.svg" alt="" class="w-48 mb-4 animate__animated animate__fadeIn">
+          <h2 class="text-xl font-semibold text-white animate__animated animate__fadeIn">Let's plan your shopping!</h2>
+          <p class="opacity-70 mb-8 text-white animate__animated animate__fadeIn">Tap the plus button to start adding products</p>
+          <button id="start-adding-button" class="px-6 py-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all shadow-lg animate__animated animate__fadeIn">
+            <span class="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              ADD
+            </span>
+          </button>
+        </div>
+
+        <!-- 2) Add-items state (hidden by default) -->
+        <div id="add-items-view" class="hidden">
+          <!-- Tabs & suggestions (no margin-top) - Only visible in add mode -->
+          <div id="popular-items-container" class="px-0 flex-1 overflow-auto" style="background: #1a1a1a; margin-top:0; padding-top:0;">
+            <div class="flex" id="item-tabs" style="position: sticky; top: 0; z-index: 10; background: #1a1a1a;">
+              <button class="flex-1 py-2 px-4 text-center border-b-2 border-yellow-400 font-medium text-white active" data-tab="popular">Popular</button>
+              <button class="flex-1 py-2 px-4 text-center opacity-60 text-white" data-tab="recent">Recent</button>
+            </div>
+            <div id="popular-items-content" class="space-y-0 overflow-auto pb-16">
+              <!-- Popular items will be dynamically added here by JavaScript -->
+            </div>
+            <div id="recent-items-content" class="space-y-0 hidden overflow-auto pb-16">
+              <!-- Recent items will be dynamically added here by JavaScript -->
+            </div>
           </div>
-          -->
+          <!-- DONE button - Fixed position -->
+          <div class="fixed bottom-6 right-6 z-50">
+            <button id="done-adding-button" 
+                    class="px-6 py-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all shadow-lg flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              DONE
+            </button>
+          </div>
         </div>
-         <!-- Add Item Bar -->
-         <div class="p-3 border-t flex items-center space-x-2 flex-shrink-0" style="border-color: var(--border-color); background: var(--card-bg);">
-             <input
-                id="add-item-input"
-                type="text"
-                placeholder="Add item manually..."
-                class="flex-grow px-3 py-2 rounded-full border focus:outline-none focus:ring-2 focus:border-transparent"
-                style="
-                  background: var(--input-bg);
-                  color: var(--main-text); /* Use main text for input */
-                  border-color: var(--border-color);
-                "
-             />
-             <button
-                id="add-item-button"
-                class="p-2.5 rounded-full transition-all duration-200 hover:scale-110 active:scale-95 shadow-md hover:shadow-lg"
-                style="background: var(--accent); color: var(--accent-text);"
-                title="Add Item to List"
-             >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-             </button>
-         </div>
+        <!-- Floating add button for non-empty list, hidden in add mode -->
+        <button id="add-more-items-fab" class="hidden fixed bottom-6 right-6 z-20 bg-yellow-400 text-black rounded-full w-16 h-16 flex items-center justify-center text-3xl shadow-xl transition-transform duration-200 hover:scale-110" title="Add more items">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+        
+        <!-- Container for items in the list -->
+        <div id="list-items-container" class="space-y-3 overflow-y-auto flex-grow">
+          <!-- Items will be injected here -->
+        </div>
       </div>
 
       <!-- CARDS TAB -->
@@ -564,17 +609,23 @@
   </div>
 
   <!-- Modal Overlay -->
-  <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden flex items-center justify-center">
-    <div id="modal-content" class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-80 animate__animated">
-      <div class="flex justify-between items-center mb-4">
-        <h3 id="modal-title" class="text-lg font-semibold"></h3>
-        <button id="modal-close" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
+  <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-40 z-50 hidden">
+    <div id="modal-content" class="w-full animate__animated fixed bottom-0 left-0 right-0">
+      <div class="p-4">
+        <div class="flex justify-between items-center mb-2">
+          <h3 id="modal-title" class="text-xl font-semibold text-white">Create a new list</h3>
+          <button id="modal-close" class="text-white opacity-70 hover:opacity-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div id="modal-body" class="text-white">
+          <input type="text" id="new-list-name" class="w-full h-12 px-4 rounded-lg text-white border-2 border-red-500 focus:outline-none" placeholder="New list">
+          <button id="create-list-confirm" class="w-full mt-4 py-3 bg-yellow-400 text-black font-semibold rounded-lg uppercase tracking-wide">SAVE</button>
+          <button id="create-list-cancel" class="hidden">Cancel</button>
+        </div>
       </div>
-      <div id="modal-body" class="text-sm"></div>
     </div>
   </div>
 
@@ -700,6 +751,54 @@
   .animate-scanline {
     animation: scanline 1.5s linear infinite alternate;
   }
+
+  /* Hide empty list items container */
+  #list-items-container:empty {
+    display: none;
+    min-height: 0;
+    padding: 0;
+  }
+
+  /* Reset margins on tabs */
+  #item-tabs {
+    margin-top: 0;
+  }
+
+  /* Ensure no gaps in the container */
+  #popular-items-container {
+    margin-top: 0;
+    padding-top: 0;
+  }
+
+  /* Remove any stray padding from the parent container */
+  .bg-gray-900 {
+    padding: 0;
+    min-height: 0;
+  }
   </style>
+
+  <!-- Scripts -->
+  <script src="js/firebase.js" type="module"></script>
+  <script src="js/ui.js" type="module"></script>
+  <script src="js/storage.js" type="module"></script>
+  <script src="js/illustrations.js" type="module"></script>
+  <script src="js/listUI.js" type="module"></script>
+  <script src="js/app.js" type="module"></script>
+  
+  <!-- Optional: Initialize service worker for PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js').then(
+          function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          },
+          function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          }
+        );
+      });
+    }
+  </script>
 </body>
 </html>

@@ -1,0 +1,1 @@
+# Smart Shopper ZA Scrapy module 

@@ -53,4 +53,5 @@ build/Release/
 *.tgz
 
 # Miscellaneous
-y
+ybackend/sa-key.json
+backend/sa-key.json

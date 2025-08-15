@@ -182,11 +182,22 @@ export async function addItemToList(listId, product) {
   if (listIndex > -1) {
     if (!Array.isArray(lists[listIndex].items)) lists[listIndex].items = [];
     
+    // Check if an item with the same name already exists in the list
+    const itemName = product.name.trim().toLowerCase();
+    const isDuplicate = lists[listIndex].items.some(item => 
+      item.name.trim().toLowerCase() === itemName
+    );
+    
+    if (isDuplicate) {
+      throw new Error('This item is already in your list.');
+    }
+    
     const newItem = {
       id: product.id || `item-${Date.now()}`,
       name: product.name,
       price: product.price,
       retailer: product.retailer,
+      completed: false,
       addedAt: new Date().toISOString()
     };
     
@@ -209,6 +220,25 @@ export async function removeItemFromList(listId, itemId) {
     
     await saveShoppingLists(lists);
   }
+}
+
+// New function to toggle item completion status
+export async function toggleItemCompletion(listId, itemId, isCompleted) {
+  const lists = await getShoppingLists();
+  const listIndex = lists.findIndex(list => list.id === listId);
+  
+  if (listIndex > -1) {
+    const itemIndex = lists[listIndex].items.findIndex(item => item.id === itemId);
+    
+    if (itemIndex > -1) {
+      lists[listIndex].items[itemIndex].completed = isCompleted;
+      lists[listIndex].updatedAt = new Date().toISOString();
+      
+      await saveShoppingLists(lists);
+      return true;
+    }
+  }
+  return false;
 }
 
 // Loyalty Cards Methods

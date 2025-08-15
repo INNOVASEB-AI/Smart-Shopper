@@ -17,31 +17,38 @@
 --------------------------------------------- */
 :root {
   /* HEADER */
-  --header-bg: #E05D50;   /* Darker red for better contrast with white text */
-  --header-text: #FFFFFF; /* White header text */
+  --header-bg: #FF6B6B;    /* Coral red header to match screenshot */
+  --header-text: #FFFFFF;  /* White text for contrast */
 
   /* MAIN */
-  --main-bg: linear-gradient(to bottom, #FFECD2, #FFD3AE); /* Peach gradient */
-  --main-text: #333333;
+  --main-bg: #FFFFFF;      /* Clean white background */
+  --main-text: #1A1A1D;    /* Dark text for contrast */
 
   /* NAVIGATION */
-  --nav-bg: #E05D50;      /* Same as header for a unified bar color */
-  --nav-text: #FFFFFF;
+  --nav-bg: #121212;       /* Dark nav for consistency */
+  --nav-text: #FFFFFF;     /* White text for contrast */
 
   /* CARDS */
-  --card-bg: #FFFFFF;     /* White card on peach background */
-  --card-text: #333333;
+  --card-bg: #F8F9FA;      /* Light gray for subtle depth */
+  --card-text: #1A1A1D;    /* Dark text for contrast */
 
   /* ACCENTS */
-  --accent: #D8B400;      /* Darker yellow for better contrast */
-  --accent-text: #000000; /* Black text on yellow for better contrast */
+  --accent: #FFBA08;       /* Yellow accent to match screenshot */
+  --accent-text: #000000;  /* Black text on accent for readability */
 
   /* BORDERS & INPUTS */
-  --border-color: #FFD9C2;/* Subtle border color to match peach vibe */
-  --input-bg: #FFF8F2;    /* Slightly tinted input background */
+  --border-color: #E9ECEF; /* Subtle borders */
+  --input-bg: #FFFFFF;     /* White input background */
+  --input-text: #1A1A1D;   /* Dark text for inputs */
   
   /* FOCUS STATE */
-  --focus-ring: #2563EB;  /* Tailwind blue-600 for focus rings */
+  --focus-ring: #FF6B6B;   /* Coral focus ring */
+
+  /* MODAL */
+  --modal-bg: #243B53;     /* Darker blue for modal background */
+  --modal-text: #FFFFFF;   /* White text for modals */
+  --modal-input-bg: #FFFFFF; /* White background for modal inputs */
+  --modal-input-text: #1A1A1D; /* Dark text for modal inputs */
 }
 
 /* --------------------------------------------
@@ -49,31 +56,38 @@
 --------------------------------------------- */
 .dark {
   /* HEADER */
-  --header-bg: #1A1A1D;    /* Charcoal */
-  --header-text: #FFFFFF;
+  --header-bg: #FF6B6B;    /* Coral red header to match screenshot */
+  --header-text: #FFFFFF;  /* White text */
 
   /* MAIN */
-  --main-bg: #141416;      /* Deep dark background */
-  --main-text: #FFFFFF;
+  --main-bg: #121212;      /* Material dark background */
+  --main-text: #FFFFFF;    /* White text */
 
   /* NAVIGATION */
-  --nav-bg: #1A1A1D;       /* Charcoal nav */
-  --nav-text: #FFFFFF;
+  --nav-bg: #121212;       /* Match main background */
+  --nav-text: #FFFFFF;     /* White text */
 
   /* CARDS */
-  --card-bg: #2B2B2E;      /* Slightly lighter than main for contrast */
-  --card-text: #FFFFFF;
+  --card-bg: #1E1E1E;      /* Elevated surface */
+  --card-text: #FFFFFF;    /* White text */
 
   /* ACCENTS */
-  --accent: #E68A00;       /* Darker orange for better contrast */
-  --accent-text: #000000;  /* Dark text on bright orange */
+  --accent: #FFBA08;       /* Yellow accent to match screenshot */
+  --accent-text: #000000;  /* Black text on accent for readability */
 
   /* BORDERS & INPUTS */
-  --border-color: #4B4B4F; /* Increased contrast for borders */
-  --input-bg: #1F1F22;     /* Slightly lighter than main bg */
+  --border-color: #2C2C2C; /* Subtle borders */
+  --input-bg: #2C2C2C;     /* Slightly lighter than cards */
+  --input-text: #FFFFFF;   /* White text for inputs */
   
   /* FOCUS STATE */
-  --focus-ring: #3B82F6;   /* Tailwind blue-500 for focus rings */
+  --focus-ring: #FF6B6B;   /* Coral focus ring */
+
+  /* MODAL */
+  --modal-bg: #243B53;     /* Darker blue for modal background */
+  --modal-text: #FFFFFF;   /* White text for modals */
+  --modal-input-bg: #2C2C2C; /* Darker background for modal inputs */
+  --modal-input-text: #FFFFFF; /* White text for modal inputs */
 }
 
 /* --------------------------------------------
@@ -88,16 +102,26 @@ html, body {
 body {
   min-height: 100vh;
   height: 100vh;
-  overflow: hidden; /* Prevents double scrollbars */
+  overflow: hidden;
   font-family: 'Inter', sans-serif;
   transition: background-color 0.4s ease, color 0.4s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 main {
-  flex: 1 1 auto;
+  flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding-bottom: 60px !important; /* Add space at the bottom to prevent content from being hidden behind the navigation bar */
+  padding-bottom: env(safe-area-inset-bottom, 60px); /* Use safe area inset if available */
+  height: calc(100vh - 60px - 56px); /* Subtract header (56px) and nav (60px) heights */
+}
+
+/* Remove extra bottom padding when in a list or search view */
+body.showing-list-items main,
+body.showing-search main {
+  padding-bottom: 0 !important;
+  height: calc(100vh - 56px); /* Only subtract header height when nav is hidden */
 }
 
 .phone-mock {
@@ -119,12 +143,19 @@ main {
    TAB CONTENT HIDDEN/SHOWN
 --------------------------------------------- */
 .tab-content {
-  display: none;
+  display: none; /* Hidden by default */
   height: 100%;
   overflow-y: auto;
 }
+
+/* Allow JavaScript to control tab visibility */
 .tab-content.active {
-  display: block;
+  display: block !important; /* Force display when active */
+}
+
+/* Never use !important on display: none to allow JS control */
+.tab-content:not(.active) {
+  display: none;
 }
 
 /* Custom scrollbar for tabs */
@@ -142,46 +173,194 @@ main {
 /* --------------------------------------------
    LIST ITEMS VIEW STYLES
 --------------------------------------------- */
-/* Ensure the view covers the main area */
+/* Fixed positioning was causing issues with navigation */
 #list-items-view {
-  z-index: 10; /* Make sure it overlays the tabs */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: var(--main-bg);
+  overflow: hidden;
 }
 
-/* Style for individual items within the list view */
+body:not(.showing-list-items) #list-items-view {
+  bottom: 60px;
+}
+
+/* Fix the back button to ensure it's clickable */
+#back-to-lists-button {
+  z-index: 40; /* Ensure back button is above other elements */
+  cursor: pointer; /* Make sure cursor shows it's clickable */
+  position: relative; /* Ensure proper stacking context */
+}
+
+/* Make sure the list items header is always visible and at top */
+#list-items-view .p-4.flex.items-center.border-b {
+  padding: 8px 16px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #121212 !important;
+  color: white !important;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  box-shadow: none;
+  border-bottom: 1px solid #2A2A2A;
+}
+
+/* Style the list title in the header */
+#list-items-title {
+  font-size: 1.4rem !important;
+  font-weight: 500 !important;
+  margin-left: 12px !important;
+}
+
+/* Style the back button in header */
+#back-to-lists-button {
+  padding: 8px;
+  color: white !important;
+}
+
+/* Add right side header buttons styling */
+#delete-list-button {
+  color: white !important;
+}
+
+/* Container for list items to allow proper scrolling */
+#list-items-container {
+  overflow-y: auto;
+  padding: 0 !important;
+  padding-top: 96px !important; /* Header height (56px) + progress bar height */
+  margin-top: 0 !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #121212;
+}
+
+/* Style individual list item entries to match the screenshot */
 .list-item-entry {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1rem; /* py-3 px-4 */
-    border-radius: 0.5rem; /* rounded-lg */
-    border: 1px solid var(--border-color);
-    background-color: var(--card-bg); /* Use card background */
-    color: var(--card-text); /* Use card text color */
-    transition: background-color 0.2s ease;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0;
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #2A2A2A !important;
+  box-shadow: none !important;
+  transition: background-color 0.2s ease;
 }
 
+/* Style the item container */
+.list-item-entry .flex.items-center {
+  padding: 16px !important;
+  position: relative;
+}
+
+/* Style the checkbox to match the blue circles in the screenshot */
+.list-item-entry .item-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px !important;
+  height: 24px !important;
+  border: 2px solid #4B95DE;
+  border-radius: 50%;
+  outline: none;
+  margin-right: 14px !important;
+  background-color: transparent;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Add a blue fill when checked */
+.list-item-entry .item-checkbox:checked {
+  background-color: #4B95DE;
+}
+
+/* Add a checkmark for checked items */
+.list-item-entry .item-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Style the item text */
+.list-item-entry p {
+  font-size: 1.05rem !important;
+  font-weight: 400 !important;
+  margin: 0;
+  color: white;
+}
+
+/* Style the remove button */
+.list-item-entry .remove-item-button {
+  position: absolute;
+  right: 16px;
+  color: #FF4B4B !important;
+}
+
+/* Add styling for product icons shown on the right */
+.list-item-entry::after {
+  content: "";
+  position: absolute;
+  right: 48px;
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Style the ADD button at the bottom */
+#add-more-items-fab {
+  width: auto !important;
+  height: auto !important;
+  padding: 12px 20px !important;
+  border-radius: 30px !important;
+  background-color: #1E1E1E !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #4B95DE !important;
+  font-weight: 500 !important;
+  font-size: 1rem !important;
+}
+
+#add-more-items-fab svg {
+  width: 20px !important;
+  height: 20px !important;
+  margin-right: 8px !important;
+  color: #4B95DE !important;
+}
+
+/* Add text after the plus icon */
+#add-more-items-fab::after {
+  content: "ADD";
+  font-weight: 500;
+  color: #4B95DE;
+  margin-left: 4px;
+}
+
+/* Remove hover scaling on list items to match the design */
 .list-item-entry:hover {
-    /* Optional: slightly change background on hover */
-    /* background-color: var(--input-bg); */
-}
-
-.remove-item-button {
-    padding: 0.25rem 0.5rem; /* px-2 py-1 */
-    font-size: 0.75rem; /* text-xs */
-    border-radius: 0.375rem; /* rounded-md */
-    background-color: #ffebeb; /* Light red background */
-    color: #b91c1c; /* Darker red text for better contrast */
-    border: 1px solid #ffbdbd; /* Red border */
-    transition: opacity 0.2s ease;
-}
-.remove-item-button:hover {
-    opacity: 0.8;
-}
-
-.dark .remove-item-button {
-    background-color: rgba(220, 38, 38, 0.3); /* Darker red background with better opacity */
-    color: #ef4444; /* Red-500 for better contrast */
-    border-color: rgba(220, 38, 38, 0.6);
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 /* --------------------------------------------
@@ -194,15 +373,24 @@ main {
 
 /* Navigation Bar Fix - Display tabs horizontally */
 nav {
-  display: flex !important; /* Force display: flex */
-  flex-direction: row !important; /* Ensure horizontal layout */
-  justify-content: space-between !important; /* Space tabs evenly */
-  width: 100% !important; /* Full width */
-  position: fixed !important; /* Fix at bottom of screen */
-  bottom: 0 !important; /* Position at bottom */
-  left: 0 !important; /* Align to left edge */
-  padding: 0.5rem 0 !important; /* Add padding top/bottom */
-  z-index: 50 !important; /* Ensure it's above content */
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  height: 60px !important; /* Fixed height for nav */
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  padding: 0.5rem 0 !important;
+  z-index: 50 !important;
+  background-color: var(--nav-bg) !important;
+  border-top: 1px solid var(--border-color);
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem) !important; /* Safe area for notched phones */
+}
+
+/* Only hide navbar when list-items-view is shown */
+body.showing-list-items nav {
+  display: none !important;
 }
 
 .card, .list-item-entry, .search-result-card {
@@ -239,12 +427,85 @@ button:active, .nav-button:active {
 }
 
 #modal-overlay {
-  backdrop-filter: blur(2px);
-  transition: background 0.3s;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
 }
 #modal-content {
-  min-width: 260px;
-  max-width: 90vw;
+  width: 100%;
+  background-color: #1A3A5F; /* Dark blue matching screenshot */
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  position: relative;
+  z-index: 10000;
+}
+
+#modal-close {
+  padding: 8px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+#modal-title {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+#new-list-name {
+  width: 100%;
+  height: 50px;
+  background-color: #242424; /* Darker input field */
+  border: 2px solid #ff5757; /* Red border matching screenshot */
+  border-radius: 10px;
+  color: white;
+  padding: 0 16px;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  /* Make sure the input is visible on mobile even with keyboard open */
+  position: relative;
+  z-index: 10001;
+  -webkit-appearance: none; /* Remove default iOS styling */
+  -webkit-user-select: text; /* Enable text selection on iOS */
+  user-select: text;
+}
+
+#new-list-name::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+#modal-body label {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+#create-list-confirm {
+  width: 100%;
+  background-color: #ffcc00; /* Yellow button matching screenshot */
+  color: black;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#create-list-cancel {
+  display: none; /* Hide the cancel button to match screenshot 2 */
+}
+
+/* Hide modal by default */
+#modal-overlay.hidden {
+  display: none;
 }
 
 /* Headings */
@@ -268,6 +529,7 @@ h3 { font-size: 1rem; }
 .fab-container {
   right: 0;
   left: auto !important;
+  z-index: 55 !important; /* Above everything */
 }
 
 .fab-main {
@@ -358,5 +620,1154 @@ a:focus, button:focus, input:focus, select:focus, textarea:focus, [tabindex]:foc
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Add styles for modal */
+.modal-content {
+  background-color: var(--modal-bg);
+  color: var(--modal-text);
+}
+
+/* Style for the create list modal */
+#modal-overlay .modal-content {
+  background-color: var(--modal-bg);
+  color: var(--modal-text);
+}
+
+/* Style for input fields in modals */
+.modal-content input {
+  background-color: var(--modal-input-bg);
+  color: var(--modal-input-text);
+  border-color: var(--border-color);
+}
+
+/* Style for modal labels */
+.modal-content label {
+  color: var(--modal-text);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+/* Style for modal buttons */
+#create-list-confirm {
+  background-color: var(--accent) !important;
+  color: var(--accent-text) !important;
+  font-weight: 600;
+}
+
+#create-list-cancel {
+  background-color: transparent !important;
+  color: var(--modal-text) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Improve input field contrast */
+input, textarea, select {
+  color: var(--input-text);
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+}
+
+/* Placeholder text with better contrast */
+::placeholder {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.dark ::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Apply specific styling to the new list modal */
+#modal-overlay[style*="display: block"] #modal-content {
+  background-color: var(--modal-bg);
+  color: var(--modal-text);
+  border-radius: 1rem;
+}
+
+#modal-overlay[style*="display: block"] #modal-title {
+  color: var(--modal-text);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+#new-list-name {
+  background-color: var(--modal-input-bg);
+  color: var(--modal-input-text);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+/* Ensure list items have good contrast */
+.list-item-entry {
+  color: var(--card-text);
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+/* Improve tab navigation contrast */
+.nav-button {
+  color: var(--nav-text);
+  opacity: 0.7;
+}
+
+.nav-button.active {
+  opacity: 1;
+  color: var(--nav-text);
+}
+
+/* Improve text contrast for buttons */
+button {
+  color: inherit;
+}
+
+button[type="submit"], 
+.create-button,
+.save-button {
+  background-color: var(--accent) !important;
+  color: var(--accent-text) !important;
+  font-weight: 600 !important;
+}
+
+/* Apply specific styling to the Create New List modal shown in the screenshot */
+#modal-overlay:not(.hidden) #modal-content {
+  background-color: #243B53; /* Dark blue background as shown in screenshot */
+  color: white;
+}
+
+#modal-overlay:not(.hidden) #modal-title {
+  color: white;
+  font-size: 1.75rem;
+  font-weight: 700;
+  padding-bottom: 1rem;
+}
+
+#modal-overlay:not(.hidden) label {
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+#modal-overlay:not(.hidden) input {
+  background-color: #333;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+}
+
+#create-list-confirm, #create-list-cancel {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+}
+
+#create-list-confirm {
+  background-color: var(--accent) !important;
+  color: var(--accent-text) !important;
+}
+
+#create-list-cancel {
+  background-color: transparent !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Add hover effects */
+.list-item:hover,
+.modal-content button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Add active effects */
+.list-item:active,
+.modal-content button:active {
+  transform: translateY(0);
+}
+
+/* Fix animation conflicts */
+.animate__animated.animate__fadeOut {
+  animation-duration: 0.3s !important; /* Ensure animations complete quickly */
+}
+
+.animate__animated.animate__fadeIn {
+  animation-duration: 0.3s !important;
+}
+
+/* Style the delete list button to match theme */
+#delete-list-button {
+  color: #FF6B6B !important; /* Match header color */
+}
+
+/* Fix the tab-switching visibility issues */
+.tab-content.active {
+  display: block !important; /* Force display when active */
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Add specific style for the iPhone-style bottom bar browser UI in the screenshot */
+.browser-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  display: none; /* Hide by default, only show if needed */
+}
+
+@media (display-mode: browser) {
+  .browser-bottom-bar {
+    display: block;
+  }
+  
+  /* Adjust padding when browser UI is present */
+  main {
+    padding-bottom: 100px !important;
+  }
+}
+
+/* --------------------------------------------
+   SPECIFIC UI COMPONENTS
+--------------------------------------------- */
+
+/* Style for the "My Shopping Lists" header */
+#list-tab h2 {
+  color: white;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Style for list items in the shopping lists view */
+.list-item {
+  background-color: rgba(30, 30, 30, 0.7);
+  color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.list-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Make header bar match the screenshot exactly */
+header {
+  background-color: #FF6B6B !important;
+  color: white !important;
+  height: 56px !important; /* Fixed height for header */
+  min-height: 56px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 1rem !important;
+}
+
+/* Style for the new list button */
+#new-list-button {
+  background-color: var(--accent) !important;
+  color: var(--accent-text) !important;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Fix list item name contrast in dark mode */
+.dark .list-item .list-item-name {
+  color: white;
+  font-weight: 500;
+}
+
+/* Make the main content area properly dark */
+body.dark main {
+  background-color: var(--main-bg);
+  color: var(--main-text);
+}
+
+/* Fix navigation bar in dark mode */
+.dark nav {
+  background-color: #121212 !important;
+  border-top: 1px solid #2C2C2C;
+}
+
+/* Update background of main container in dark mode to match screenshot */
+.dark #list-tab {
+  background-color: #121212;
+}
+
+/* Create New List Modal - exactly matching the screenshot */
+#modal-title {
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+#new-list-name {
+  width: 100%;
+  height: 50px;
+  background-color: #333333;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  padding: 0 16px;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+#new-list-name::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+#modal-body label {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+#create-list-confirm {
+  width: 100%;
+  background-color: #FFBA08;
+  color: black;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+#create-list-cancel {
+  width: 100%;
+  background-color: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+/* Hide modal by default */
+#modal-overlay.hidden {
+  display: none;
+}
+
+/* Update header to have search box instead of title */
+#list-items-view .header-search-box {
+  flex: 1;
+  position: relative;
+  margin-left: 8px;
+  margin-right: 8px;
+  display: none; /* Hidden by default */
+}
+
+#list-items-view.adding .header-search-box {
+  display: flex !important; /* Show when in adding mode */
+}
+
+.header-search-box input {
+  width: 100%;
+  padding: 8px 16px 8px 40px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  border-radius: 9999px;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.header-search-box .search-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Add placeholder styling */
+.header-search-box input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Hide list name in add mode */
+#list-items-view.adding #list-items-title {
+  display: none;
+}
+
+/* Hide delete button in add mode */
+#list-items-view.adding #delete-list-button {
+  display: none;
+}
+
+/* Header search box */
+.header-search-box {
+  width: 100%;
+  position: relative;
+  /* No display: none here to avoid conflicting rules */
+}
+
+/* Remove the .list-view selector since we're using #list-items-view */
+/* .list-view.adding .header-search-box {
+  display: flex;
+  align-items: center;
+} */
+
+/* This is the correct selector that we want to keep */
+#list-items-view.adding .header-search-box {
+  display: flex;
+  align-items: center;
+}
+
+.list-view.adding #list-items-title,
+.list-view.adding #delete-list-button {
+  display: none;
+}
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  color: rgba(255,255,255,0.5);
+  z-index: 5;
+}
+
+#search-items-input {
+  width: 100%;
+  border-radius: 8px;
+  padding: 8px 12px 8px 36px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: white;
+  font-size: 0.95rem;
+}
+
+#search-items-input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+/* Fix for item tabs */
+#item-tabs {
+  position: sticky;
+  top: 58px; /* Account for search box height */
+  z-index: 10;
+  background: #1a1a1a;
+  display: flex;
+}
+
+/* Item list containers */
+#popular-items-content, 
+#recent-items-content {
+  background-color: #121212;
+  overflow-y: auto;
+  padding-bottom: 80px;
+}
+
+/* Make the header more compact */
+#list-items-view .p-4.flex.items-center.border-b {
+  padding: 8px 12px;
+}
+
+#back-to-lists-button {
+  padding: 6px;
+  margin-right: 8px;
+}
+
+/* Hide list name in add mode */
+#list-items-view.adding #list-items-title {
+  display: none !important;
+}
+
+/* Hide delete button in add mode */
+#list-items-view.adding #delete-list-button {
+  display: none !important;
+}
+
+/* Ensure proper spacing in add mode */
+#list-items-view.adding .p-4.flex.items-center.border-b {
+  padding: 8px 12px;
+  background: var(--header-bg);
+}
+
+/* Make the input row more compact */
+#list-items-view .flex.items-center.p-4 {
+  padding: 8px 12px;
+}
+
+#add-item-input {
+  height: 40px;
+  font-size: 0.95rem;
+}
+
+#add-item-manual-btn {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+}
+
+/* Fix tabs to be more compact */
+#item-tabs button {
+  font-size: 0.9rem;
+  padding: 6px 0;
+}
+
+/* Reset margins on tabs */
+#item-tabs {
+  margin-top: 0;
+}
+
+/* Ensure no gaps in the container */
+#popular-items-container {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* Remove any stray padding from the parent container */
+.bg-gray-900 {
+  padding: 0;
+  min-height: 0;
+}
+
+/* Adjust the add items view for proper layout */
+#add-items-view {
+  display: none;
+  position: absolute;
+  top: 56px; /* Align exactly with header height */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  background: #121212 !important;
+  margin: 0;
+  padding: 0;
+}
+
+#add-items-view.shown {
+  display: block !important;
+}
+
+/* Progress bar container styles */
+#list-items-container > div:first-child {
+  position: fixed;
+  top: 56px; /* Position immediately below header */
+  left: 0;
+  right: 0;
+  background: #1A1A1A;
+  padding: 8px 16px;
+  z-index: 90; /* Below header but above content */
+  margin: 0;
+  border-bottom: 1px solid #2C2C2C;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  width: 100%;
+}
+
+/* Style the progress text */
+#list-items-container > div:first-child .flex.justify-between,
+#list-items-container > div:first-child div {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 4px;
+}
+
+#list-items-container > div:first-child span,
+#list-items-container > div:first-child .text-sm {
+  font-size: 0.85rem !important;
+  font-weight: 500;
+  color: #FFFFFF;
+  opacity: 0.85;
+}
+
+/* Style the progress bar */
+#list-items-container > div:first-child .w-full.h-2\.5,
+#list-items-container > div:first-child .bg-gray-200,
+#list-items-container > div:first-child .w-full.h-2,
+#list-items-container > div:first-child .bg-gray-700 {
+  height: 3px !important;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Style the progress bar fill */
+#list-items-container > div:first-child .h-full.bg-green-500,
+#list-items-container > div:first-child .bg-green-500 {
+  background: #22c55e !important; /* Bright green */
+  height: 100% !important;
+  transition: width 0.3s ease;
+}
+
+/* First list item should have more top margin */
+#list-items-container > div:nth-child(2) {
+  margin-top: 1rem;
+}
+
+/* Create proper spacing for list item entries */
+.list-item-entry {
+  margin: 0.75rem 1rem;
+  border-radius: 8px;
+}
+
+/* Ensure the entire content area is visible and scrollable */
+body.showing-list-items main {
+  padding-bottom: 0 !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+/* Add a subtle bottom effect to the progress container */
+#list-items-container > div:first-child::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1), transparent);
+  pointer-events: none;
+}
+
+/* Style the header in add items mode */
+#list-items-view.adding .p-4.flex.items-center.border-b {
+  background: #121212 !important;
+  border-bottom: 1px solid #333 !important;
+  padding: 8px 12px !important;
+}
+
+/* Style the search input in the header */
+.header-search-box input,
+#add-item-input {
+  background: #333 !important;
+  color: white !important;
+  border-radius: 30px !important;
+  padding: 10px 42px !important;
+  font-size: 1rem !important;
+  border: none !important;
+  width: 100% !important;
+  height: 46px !important;
+}
+
+.header-search-box .search-icon {
+  color: rgba(255, 255, 255, 0.5) !important;
+  left: 15px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 5 !important;
+  position: absolute !important;
+}
+
+/* Add a yellow plus button in the header when in add mode */
+#add-item-manual-btn {
+  background-color: #FFCC00 !important;
+  color: black !important;
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: 10px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  padding: 0 !important;
+}
+
+/* Fix the add items view container */
+#add-items-view {
+  display: none;
+  position: absolute;
+  top: 56px; /* Align with header */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #121212 !important;
+  overflow: hidden;
+  z-index: 45;
+}
+
+#add-items-view.shown {
+  display: block !important;
+}
+
+/* Style the tabs in the add items view */
+#item-tabs {
+  display: flex;
+  background: #121212 !important;
+  border-bottom: 1px solid #333 !important;
+  position: relative !important;
+  z-index: 10;
+  height: 50px !important;
+}
+
+#item-tabs button {
+  color: white !important;
+  font-size: 1.1rem !important;
+  font-weight: 500 !important;
+  padding: 12px 0 !important;
+  opacity: 0.7;
+  border-bottom: 3px solid transparent;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+#item-tabs button.active {
+  opacity: 1 !important;
+  border-bottom: 3px solid #FFCC00 !important;
+}
+
+/* Style the popular/recent items container */
+#popular-items-container {
+  background: #121212 !important;
+  position: relative !important;
+  display: block !important;
+  height: auto !important;
+  overflow: visible !important;
+  z-index: 5;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+#popular-items-content, 
+#recent-items-content {
+  background: #121212 !important;
+  overflow-y: auto;
+  height: calc(100vh - 170px) !important; /* Adjust for header + tabs + done button */
+  padding-bottom: 80px !important;
+}
+
+/* Style the popular/recent items */
+.popular-item {
+  display: flex !important;
+  align-items: center !important;
+  padding: 16px !important;
+  border-bottom: 1px solid #333 !important;
+  background-color: #121212 !important;
+  margin: 0 !important;
+}
+
+/* Style the add button for popular/recent items */
+.add-popular-item, .add-recent-item {
+  width: 36px !important;
+  height: 36px !important;
+  background-color: #4B95DE !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-right: 16px !important;
+  color: white !important;
+  font-size: 20px !important;
+  line-height: 0 !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Style the popular item text */
+.popular-item span {
+  color: white !important;
+  font-size: 1.05rem !important;
+  flex-grow: 1 !important;
+}
+
+/* Style the red X button */
+.remove-popular-item {
+  position: absolute !important;
+  right: 16px !important;
+  color: #FF4B4B !important;
+  font-size: 1.2rem !important;
+}
+
+/* Style the Done button */
+#done-adding-button {
+  position: fixed !important;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+  right: 20px !important;
+  z-index: 100 !important;
+  background-color: #4B95DE !important;
+  color: white !important;
+  font-weight: 500 !important;
+  border-radius: 30px !important;
+  padding: 12px 30px !important;
+  font-size: 1rem !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+#done-adding-button svg {
+  margin-right: 8px !important;
+}
+
+#done-adding-button:active {
+  transform: scale(0.98) !important;
+}
+
+/* Show the Done button in add mode */
+#list-items-view.adding #done-adding-button {
+  display: flex !important;
+}
+
+/* Fix z-index for the fixed header */
+#list-items-view .p-4.flex.items-center.border-b {
+  z-index: 110 !important; /* Highest z-index to ensure it's above everything */
+}
+
+/* Fix the back button in the header */
+#back-to-lists-button {
+  z-index: 115 !important;
+}
+
+/* Styling for suggestions dropdown */
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: #2A2A2A;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 0 0 8px 8px;
+  z-index: 100;
+  margin-top: 4px;
+  border: 1px solid #3A3A3A;
+}
+
+.suggestion-item {
+  padding: 12px 16px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #3A3A3A;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover, .suggestion-item.bg-gray-700 {
+  background-color: #3A3A3A;
+  font-weight: 500;
+}
+
+/* Make the suggestions scrollable but hidden scrollbar */
+.suggestions-dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+
+.suggestions-dropdown::-webkit-scrollbar-thumb {
+  background: #4A4A4A;
+  border-radius: 4px;
+}
+
+.suggestions-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Add a highlight color for selected suggestion */
+.suggestion-item.bg-gray-700 {
+  background-color: #ffcc002a !important;
+  border-left: 3px solid #FFCC00;
+}
+
+/* --------------------------------------------
+   MOBILE RESPONSIVENESS IMPROVEMENTS
+--------------------------------------------- */
+@media screen and (max-width: 768px) {
+  /* Remove phone mock on mobile */
+  .phone-mock {
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Adjust header for mobile */
+  header {
+    padding: 0.75rem 1rem !important;
+    height: 56px !important;
+  }
+
+  /* Make main content full width */
+  main {
+    padding: 0 !important;
+    height: calc(100vh - 56px - env(safe-area-inset-bottom, 60px)) !important;
+  }
+
+  /* Adjust list items for mobile */
+  .list-item-entry {
+    margin: 0 !important;
+    padding: 0.75rem 1rem !important;
+    border-radius: 0 !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  /* Adjust list item checkbox */
+  .list-item-entry .item-checkbox {
+    width: 22px !important;
+    height: 22px !important;
+    margin-right: 12px !important;
+  }
+
+  /* Adjust list item text */
+  .list-item-entry p {
+    font-size: 1rem !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Adjust navigation bar */
+  nav {
+    height: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem) !important;
+    background-color: var(--nav-bg) !important;
+    border-top: 1px solid var(--border-color) !important;
+  }
+
+  /* Adjust modal for mobile */
+  #modal-content {
+    border-radius: 20px 20px 0 0;
+    padding: 1.5rem;
+  }
+
+  /* Adjust FAB for mobile */
+  #add-more-items-fab {
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 1rem !important;
+  }
+
+  /* Adjust search box */
+  .header-search-box input {
+    height: 46px !important;
+    font-size: 1rem !important;
+    background: #333 !important;
+  }
+
+  /* Adjust tabs */
+  #item-tabs {
+    height: 48px !important;
+  }
+
+  #item-tabs button {
+    font-size: 1rem !important;
+    padding: 12px 0 !important;
+  }
+
+  /* Adjust popular/recent items */
+  .popular-item {
+    padding: 14px 16px !important;
+  }
+
+  /* Adjust done button */
+  #done-adding-button {
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+    right: 20px !important;
+  }
+
+  /* Remove duplicate buttons */
+  #start-adding-button {
+    display: none !important;
+  }
+
+  /* Adjust progress bar */
+  #list-items-container > div:first-child {
+    padding: 8px 1rem !important;
+  }
+
+  /* Adjust list items container */
+  #list-items-container {
+    padding-top: 88px !important;
+  }
+
+  /* Adjust suggestions dropdown */
+  .suggestions-dropdown {
+    border-radius: 0 0 12px 12px !important;
+    margin: 0 1rem !important;
+  }
+
+  /* Adjust empty state */
+  #empty-list-view {
+    padding: 2rem 1rem !important;
+  }
+
+  #empty-list-view img {
+    width: 120px !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  /* Adjust list header */
+  #list-items-view .p-4.flex.items-center.border-b {
+    padding: 0.75rem 1rem !important;
+  }
+
+  #list-items-title {
+    font-size: 1.25rem !important;
+  }
+
+  /* Adjust add items view */
+  #add-items-view {
+    top: 56px !important;
+  }
+
+  #popular-items-content, 
+  #recent-items-content {
+    height: calc(100vh - 100px - env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Add safe area insets for iOS devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  nav {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    height: calc(60px + env(safe-area-inset-bottom)) !important;
+  }
+
+  #done-adding-button,
+  #add-more-items-fab {
+    bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  main {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+}
+
+/* Remove hover effects on touch devices */
+@media (hover: none) {
+  .list-item-entry:hover,
+  .card:hover,
+  .search-result-card:hover,
+  .list-item:hover,
+  .setting-item:hover,
+  .loyalty-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  button:hover,
+  .nav-button:hover {
+    transform: none !important;
+  }
+}
+
+/* Style the add buttons content to match Listonic's plus symbol */
+.add-popular-item::before, .add-recent-item::before {
+  content: "+" !important;
+  font-size: 24px !important;
+  line-height: 0 !important;
+  margin-top: -1px !important;
+  font-weight: 400 !important;
+}
+
+/* Remove any default content that may be in the add button */
+.add-popular-item svg, .add-recent-item svg {
+  display: none !important;
+}
+
+/* Style the red X button exactly like Listonic */
+.remove-popular-item {
+  position: absolute !important;
+  right: 16px !important;
+  color: #FF4B4B !important;
+  font-size: 22px !important;
+  font-weight: 300 !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Style the X symbol */
+.remove-popular-item::before {
+  content: "×" !important;
+  line-height: 0 !important;
+}
+
+/* Hide any default content in remove button */
+.remove-popular-item svg {
+  display: none !important;
+}
+
+/* Fix the spacing between items */
+.popular-item {
+  border-bottom: 1px solid #333 !important;
+  margin: 0 !important;
+}
+
+/* Update the item text to match Listonic */
+.popular-item span {
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  padding-left: 2px !important;
+}
+
+/* Fix the add items view top position to match header exactly */
+#add-items-view {
+  top: 56px !important;
+}
+
+/* Fix the spacing between popular items tab and first item */
+#popular-items-content {
+  padding-top: 0 !important;
+}
+
+/* Ensure the tab backgrounds are correct */
+#item-tabs {
+  background: #121212 !important;
+}
+
+/* Ensure we have a fixed height for the content for proper scrolling */
+#popular-items-content, 
+#recent-items-content {
+  height: calc(100vh - 56px - 48px) !important;
+  padding-bottom: 80px !important;
+}
+
+/* Update search style to match Listonic exactly */
+.header-search-box input {
+  background: #333 !important;
+  color: white !important;
+}
+
+/* Fix header layout in add mode */
+#list-items-view.adding .p-4.flex.items-center.border-b {
+  padding: 8px 16px !important;
+  height: 56px !important;
+}
+
+/* Fix any mobile-specific issues */
+@media screen and (max-width: 768px) {
+  .add-popular-item::before, .add-recent-item::before {
+    content: "+" !important;
+    font-size: 24px !important;
+  }
+  
+  .remove-popular-item::before {
+    content: "×" !important;
+    font-size: 22px !important;
+  }
+  
+  #popular-items-content, 
+  #recent-items-content {
+    height: calc(100vh - 56px - 48px - env(safe-area-inset-bottom, 0px)) !important;
+  }
+  
+  /* Ensure tab styling is correct on mobile */
+  #item-tabs {
+    height: 48px !important;
+    background: #121212 !important;
   }
 }

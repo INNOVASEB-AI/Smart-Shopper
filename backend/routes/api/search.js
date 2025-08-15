@@ -16,11 +16,28 @@ const {
   getProductDetails,
   getDatabaseStats
 } = require('../../scrapers');
+
+// Import Scrapy integration
+const {
+  scrapeCheckersScrapy,
+  scrapeShopriteScrappy,
+  scrapePicknPayScrapy
+} = require('../../scrapy_scrapers');
+
 const { logger } = require('../../logger');
+// Optional Firestore search
+let firestoreSearchEnabled = process.env.USE_FIREBASE === 'true';
+let firestore;
+try {
+  firestore = require('../../services/firestore');
+} catch (_) {
+  firestore = null;
+}
 
 // Environment configuration
 const useDatabase = process.env.USE_DATABASE === 'true';
 const databasePath = process.env.DATABASE_PATH || './data/products.db';
+const useScrapy = process.env.USE_SCRAPY === 'true';
 
 /**
  * @route POST /api/search
@@ -37,142 +54,230 @@ router.post('/', async (req, res) => {
     
     logger.info(`Searching for "${query}" across retailers: ${retailers.length ? retailers.join(', ') : 'all'}`);
     
-    // Check if we should use the database for searching
+    // Prefer Firestore if enabled
+    if (firestoreSearchEnabled && firestore && typeof firestore.searchPrices === 'function') {
+      const products = await firestore.searchPrices({ query, retailer: retailers[0] });
+      return res.json({ query, results: products });
+    }
+
+    // Use database search if enabled
     if (useDatabase) {
-      logger.info(`Using database search for query: "${query}"`);
+      const results = await searchProducts({
+        query,
+        retailer: retailers.length ? retailers[0] : undefined,
+        dbPath: databasePath
+      });
       
-      try {
-        // Build search options
-        const searchOptions = {
-          query,
-          dbPath: databasePath,
-          limit: 100
-        };
-        
-        // Add retailer filter if specified
-        if (retailers.length === 1) {
-          searchOptions.retailer = retailers[0];
-        }
-        
-        // Search the database
-        const results = await searchProducts(searchOptions);
-        
-        // If results were found in the database, return them
-        if (results && results.totalProducts > 0) {
-          logger.info(`Found ${results.totalProducts} products in database for "${query}"`);
-          return res.json(results);
-        }
-        
-        // If no results were found in the database, fall back to real-time scraping
-        logger.info(`No results found in database for "${query}", falling back to real-time scraping`);
-      } catch (dbError) {
-        logger.error(`Database search error for "${query}": ${dbError.message}`);
-        // Continue with real-time scraping
-      }
+      return res.json(results);
     }
     
-    // Determine which retailers to search
-    const searchAll = retailers.length === 0;
-    const searchCheckers = searchAll || retailers.includes('checkers');
-    const searchShoprite = searchAll || retailers.includes('shoprite');
-    const searchPicknPay = searchAll || retailers.includes('picknpay');
-    const searchMakro = searchAll || retailers.includes('makro');
-    const searchWoolworths = searchAll || retailers.includes('woolworths');
-    const searchPriceCheck = searchAll || retailers.includes('pricecheck');
+    // Otherwise, scrape retailers in real-time with timeouts so slow scrapers don't block the response
+    const withTimeout = (promise, ms, retailerName) => {
+      return Promise.race([
+        promise,
+        new Promise(resolve => setTimeout(() => resolve({ retailer: retailerName, results: [], error: true, message: 'Timed out' }), ms))
+      ]);
+    };
+    const SCRAPER_TIMEOUT_MS = parseInt(process.env.SCRAPER_TIMEOUT_MS || '15000', 10);
+
+    const tasks = [];
     
-    // Initialize results object
-    const results = {};
-    
-    // Run all selected scrapers in parallel
-    const promises = [];
-    
-    if (searchCheckers) {
-      promises.push(
-        scrapeCheckers(query)
-          .then(data => { results.checkers = data; })
-          .catch(error => {
-            logger.error(`Error scraping Checkers: ${error.message}`);
-            results.checkers = [];
-          })
-      );
+    if (!retailers.length || retailers.includes('checkers')) {
+      tasks.push(withTimeout(
+        (useScrapy 
+          ? scrapeCheckersScrapy(query).then(data => ({ retailer: 'Checkers', ...data }))
+          : scrapeCheckers(query).then(data => ({ retailer: 'Checkers', ...data }))),
+        SCRAPER_TIMEOUT_MS,
+        'Checkers'
+      ));
     }
     
-    if (searchShoprite) {
-      promises.push(
-        scrapeShoprite(query)
-          .then(data => { results.shoprite = data; })
-          .catch(error => {
-            logger.error(`Error scraping Shoprite: ${error.message}`);
-            results.shoprite = [];
-          })
-      );
+    if (!retailers.length || retailers.includes('shoprite')) {
+      tasks.push(withTimeout(
+        (useScrapy 
+          ? scrapeShopriteScrappy(query).then(data => ({ retailer: 'Shoprite', ...data }))
+          : scrapeShoprite(query).then(data => ({ retailer: 'Shoprite', ...data }))),
+        SCRAPER_TIMEOUT_MS,
+        'Shoprite'
+      ));
     }
     
-    if (searchPicknPay) {
-      promises.push(
-        scrapePicknPay(query)
-          .then(data => { results.picknpay = data; })
-          .catch(error => {
-            logger.error(`Error scraping Pick n Pay: ${error.message}`);
-            results.picknpay = [];
-          })
-      );
+    if (!retailers.length || retailers.includes('picknpay')) {
+      tasks.push(withTimeout(
+        (useScrapy 
+          ? scrapePicknPayScrapy(query).then(data => ({ retailer: 'Pick n Pay', ...data }))
+          : scrapePicknPay(query).then(data => ({ retailer: 'Pick n Pay', ...data }))),
+        SCRAPER_TIMEOUT_MS,
+        'Pick n Pay'
+      ));
     }
     
-    if (searchMakro) {
-      promises.push(
-        scrapeMakro(query)
-          .then(data => { results.makro = data; })
-          .catch(error => {
-            logger.error(`Error scraping Makro: ${error.message}`);
-            results.makro = [];
-          })
-      );
+    if (!retailers.length || retailers.includes('makro')) {
+      tasks.push(withTimeout(
+        scrapeMakro(query).then(data => ({ retailer: 'Makro', ...data })),
+        SCRAPER_TIMEOUT_MS,
+        'Makro'
+      ));
     }
     
-    if (searchWoolworths) {
-      promises.push(
-        scrapeWoolworths(query)
-          .then(data => { results.woolworths = data; })
-          .catch(error => {
-            logger.error(`Error scraping Woolworths: ${error.message}`);
-            results.woolworths = [];
-          })
-      );
+    if (!retailers.length || retailers.includes('woolworths')) {
+      tasks.push(withTimeout(
+        scrapeWoolworths(query).then(data => ({ retailer: 'Woolworths', ...data })),
+        SCRAPER_TIMEOUT_MS,
+        'Woolworths'
+      ));
     }
     
-    if (searchPriceCheck) {
-      promises.push(
-        scrapePriceCheck(query)
-          .then(data => { results.pricecheck = data; })
-          .catch(error => {
-            logger.error(`Error scraping PriceCheck: ${error.message}`);
-            results.pricecheck = [];
-          })
-      );
+    if (!retailers.length || retailers.includes('pricecheck')) {
+      tasks.push(withTimeout(
+        scrapePriceCheck(query).then(data => ({ retailer: 'PriceCheck', ...data })),
+        SCRAPER_TIMEOUT_MS,
+        'PriceCheck'
+      ));
     }
     
-    // Wait for all scrapers to complete
-    await Promise.all(promises);
+    // Execute all tasks and allow failures/timeouts without blocking others
+    const settled = await Promise.allSettled(tasks);
     
-    // Count total products
-    let totalProducts = 0;
-    Object.values(results).forEach(retailerResults => {
-      totalProducts += retailerResults.length;
-    });
+    // Normalize results
+    const results = settled
+      .filter(s => s.status === 'fulfilled')
+      .map(s => s.value)
+      .map(result => ({
+        name: result.retailer,
+        results: result.results || [],
+        error: result.error || false,
+        message: result.message || ''
+      }));
+
+    const combinedResults = { query, retailers: results };
     
-    logger.info(`Search complete, found ${totalProducts} products across all retailers`);
-    
-    // Return the results
-    return res.json({
-      query,
-      results,
-      totalProducts,
-      timestamp: new Date(),
-    });
+    return res.json(combinedResults);
     
   } catch (error) {
     logger.error(`Search API error: ${error.message}`);
+    return res.status(500).json({ error: 'Server error', message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/search
+ * @description Search for products across multiple retailers (GET version for frontend compatibility)
+ * @access Public
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { query, retailers } = req.query;
+    
+    if (!query) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+    
+    // Convert retailers string to array if provided
+    let retailersArray = [];
+    if (retailers) {
+      retailersArray = typeof retailers === 'string' ? retailers.split(',') : retailers;
+    }
+    
+    logger.info(`GET search for "${query}" across retailers: ${retailersArray.length ? retailersArray.join(', ') : 'all'}`);
+
+    // Prefer Firestore if enabled
+    if (firestoreSearchEnabled && firestore && typeof firestore.searchPrices === 'function') {
+      const products = await firestore.searchPrices({ query, retailer: retailersArray[0] });
+      return res.json({ query, results: products });
+    }
+
+    // Use database search if enabled
+    if (useDatabase) {
+      const results = await searchProducts({
+        query,
+        retailer: retailersArray.length ? retailersArray[0] : undefined,
+        dbPath: databasePath
+      });
+      
+      return res.json(results);
+    }
+    
+    // Otherwise, scrape retailers in real-time with timeouts
+    const withTimeout = (promise, ms, retailerName) => {
+      return Promise.race([
+        promise,
+        new Promise(resolve => setTimeout(() => resolve({ retailer: retailerName, results: [], error: true, message: 'Timed out' }), ms))
+      ]);
+    };
+    const SCRAPER_TIMEOUT_MS = parseInt(process.env.SCRAPER_TIMEOUT_MS || '15000', 10);
+
+    const tasks = [];
+    
+    if (!retailersArray.length || retailersArray.includes('checkers')) {
+      tasks.push(withTimeout(
+        (useScrapy 
+          ? scrapeCheckersScrapy(query).then(data => ({ retailer: 'Checkers', ...data }))
+          : scrapeCheckers(query).then(data => ({ retailer: 'Checkers', ...data }))),
+        SCRAPER_TIMEOUT_MS,
+        'Checkers'
+      ));
+    }
+    
+    if (!retailersArray.length || retailersArray.includes('shoprite')) {
+      tasks.push(withTimeout(
+        (useScrapy 
+          ? scrapeShopriteScrappy(query).then(data => ({ retailer: 'Shoprite', ...data }))
+          : scrapeShoprite(query).then(data => ({ retailer: 'Shoprite', ...data }))),
+        SCRAPER_TIMEOUT_MS,
+        'Shoprite'
+      ));
+    }
+    
+    if (!retailersArray.length || retailersArray.includes('picknpay')) {
+      tasks.push(withTimeout(
+        (useScrapy 
+          ? scrapePicknPayScrapy(query).then(data => ({ retailer: 'Pick n Pay', ...data }))
+          : scrapePicknPay(query).then(data => ({ retailer: 'Pick n Pay', ...data }))),
+        SCRAPER_TIMEOUT_MS,
+        'Pick n Pay'
+      ));
+    }
+    
+    if (!retailersArray.length || retailersArray.includes('makro')) {
+      tasks.push(withTimeout(
+        scrapeMakro(query).then(data => ({ retailer: 'Makro', ...data })),
+        SCRAPER_TIMEOUT_MS,
+        'Makro'
+      ));
+    }
+    
+    if (!retailersArray.length || retailersArray.includes('woolworths')) {
+      tasks.push(withTimeout(
+        scrapeWoolworths(query).then(data => ({ retailer: 'Woolworths', ...data })),
+        SCRAPER_TIMEOUT_MS,
+        'Woolworths'
+      ));
+    }
+    
+    if (!retailersArray.length || retailersArray.includes('pricecheck')) {
+      tasks.push(withTimeout(
+        scrapePriceCheck(query).then(data => ({ retailer: 'PriceCheck', ...data })),
+        SCRAPER_TIMEOUT_MS,
+        'PriceCheck'
+      ));
+    }
+
+    const settled = await Promise.allSettled(tasks);
+
+    const products = settled
+      .filter(s => s.status === 'fulfilled')
+      .map(s => s.value)
+      .flatMap(result => (result && Array.isArray(result.results)) ? result.results : [])
+      .map(product => ({
+        ...product,
+        retailer: product.store || product.retailer
+      }));
+    
+    return res.json({ query, results: products });
+    
+  } catch (error) {
+    logger.error(`GET search API error: ${error.message}`);
     return res.status(500).json({ error: 'Server error', message: error.message });
   }
 });

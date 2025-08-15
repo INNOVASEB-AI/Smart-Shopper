@@ -6,6 +6,9 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const { logger } = require('../../logger');
+const axios = require('axios');
+const cheerio = require('cheerio');
+const BROWSER_HEADERS = require('../browserHeaders');
 
 /**
  * Executes a Python script with the provided arguments
@@ -75,20 +78,123 @@ function runPythonScript(scriptName, args = []) {
 }
 
 /**
- * Scrape PriceCheck website for products matching the given query
+ * JavaScript fallback implementation for scraping PriceCheck
+ * Used when the Python script fails
  * 
  * @param {string} query - Search query
  * @returns {Promise<Array>} - Promise that resolves with product results
  */
-async function scrapePriceCheck(query) {
+async function scrapePriceCheckJS(query) {
+  logger.info(`Using JavaScript fallback to scrape PriceCheck for query: ${query}`);
+  const searchUrl = `https://www.pricecheck.co.za/search?search=${encodeURIComponent(query)}`;
+  const retailerLogger = logger.child({ retailer: 'PriceCheck' });
+  
   try {
-    // Call the Python script and return the results
-    const results = await runPythonScript('scrape_pricecheck', [query]);
-    return results;
+    retailerLogger.info(`Scraping PriceCheck at ${searchUrl}`);
+    const { data } = await axios.get(searchUrl, { headers: BROWSER_HEADERS });
+    const $ = cheerio.load(data);
+    
+    const products = [];
+    
+    // Select product cards
+    $('.product-card').each((index, element) => {
+      try {
+        // Extract product information
+        const name = $(element).find('.product-info h3.prod-title').text().trim();
+        const priceText = $(element).find('.price').text().trim();
+        const productLink = $(element).find('a.product-card-link').attr('href');
+        const imageUrl = $(element).find('.image img').attr('src');
+        const store = $(element).find('.shop-logo img').attr('alt');
+        
+        // Process the price
+        let price = null;
+        if (priceText) {
+          // Extract numeric value from price 
+          const priceMatch = priceText.match(/[0-9,.]+/);
+          if (priceMatch) {
+            price = parseFloat(priceMatch[0].replace(/,/g, ''));
+          }
+        }
+        
+        // Construct full URL
+        let url = '';
+        if (productLink) {
+          if (productLink.startsWith('/')) {
+            url = `https://www.pricecheck.co.za${productLink}`;
+          } else if (productLink.startsWith('http')) {
+            url = productLink;
+          } else {
+            url = `https://www.pricecheck.co.za/${productLink}`;
+          }
+        } else if (name) {
+          // Fallback URL based on name
+          url = `https://www.pricecheck.co.za/search?search=${encodeURIComponent(name)}`;
+        }
+        
+        // Extract ID from URL
+        let id = null;
+        if (url) {
+          const parts = url.split('/');
+          if (parts.length > 0) {
+            id = parts[parts.length - 1];
+          }
+        }
+        
+        // Only add products with name and price
+        if (name) {
+          products.push({
+            name,
+            title: name,
+            price,
+            url,
+            id,
+            imageUrl,
+            store,
+            retailer: 'PriceCheck'
+          });
+        }
+      } catch (error) {
+        retailerLogger.error(`Error extracting product info: ${error.message}`);
+      }
+    });
+    
+    retailerLogger.info(`Found ${products.length} results from PriceCheck (JS implementation)`);
+    return { results: products, error: false };
   } catch (error) {
-    logger.error(`Error in scrapePriceCheck: ${error.message}`);
-    return [];
+    retailerLogger.error(`Error scraping PriceCheck: ${error.message}`);
+    return { results: [], error: true, message: error.message };
   }
+}
+
+/**
+ * Scrape PriceCheck website for products matching the given query
+ * 
+ * @param {string} query - Search query
+ * @returns {Promise<Object>} - Results object with data and error status
+ */
+async function scrapePriceCheck(query) {
+  // Directly use the JavaScript implementation
+  logger.info('Using JavaScript implementation for PriceCheck');
+  return await scrapePriceCheckJS(query);
+  /* Original code attempting Python first:
+  try {
+    // First try the Python script
+    const results = await runPythonScript('scrape_pricecheck', [query]);
+    
+    // Check if we received valid results
+    if (Array.isArray(results) && results.length > 0) {
+      logger.info(`Successfully retrieved ${results.length} results from Python PriceCheck scraper`);
+      return { results, error: false };
+    } else {
+      logger.warn('Python scraper returned no results, falling back to JavaScript implementation');
+      return await scrapePriceCheckJS(query);
+    }
+  } catch (error) {
+    logger.error(`Error in PriceCheck Python scraper: ${error.message}`);
+    logger.info('Falling back to JavaScript implementation');
+    return await scrapePriceCheckJS(query);
+  }
+  */
 }
 
 /**
@@ -322,6 +428,9 @@ async function listRetailers() {
 module.exports = {
   // Legacy function
   scrapePriceCheck,
+  
+  // JavaScript implementation for direct use
+  scrapePriceCheckJS,
   
   // New database search functions
   searchProducts,
