@@ -35,26 +35,29 @@ async function scrapeWoolworths(query) {
       elements.forEach(el => {
         try {
           const anchor = el.querySelector('a');
-          const urlRel = anchor ? anchor.getAttribute('href') : null;
+          const urlRel = anchor ? anchor.getAttribute('href') || anchor.getAttribute('data-href') : null;
           let url = null;
           if (urlRel) {
             if (urlRel.startsWith('/')) url = `https://www.woolworths.co.za${urlRel}`;
             else if (urlRel.startsWith('http')) url = urlRel;
           }
 
-          const nameEl = el.querySelector('.product__name, [data-testid="product-name"], h3, h2');
+          const nameEl = el.querySelector('.product__name, [data-testid="product-name"], .range--title, h3, h2');
           const name = nameEl ? nameEl.textContent.trim() : null;
 
-          const priceEl = el.querySelector('.price, [data-testid="product-price"], .product__price');
+          const priceEl = el.querySelector('.product__price, [data-testid="product-price"], .price, .main-price');
           let price = null;
           if (priceEl) {
-            const text = priceEl.textContent.replace(/,/g, '.');
+            const text = priceEl.textContent.replace(/[^0-9.]/g, '');
             const match = text.match(/R\s*([0-9]+(?:\.[0-9]{1,2})?)/i);
             if (match) price = parseFloat(match[1]).toFixed(2);
+            else if (!isNaN(parseFloat(text))) price = parseFloat(text).toFixed(2);
           }
 
-          if (url && name && price) {
-            items.push({ retailer: 'Woolworths', url, name, price });
+          const id = url ? url.match(/\/prod\/([^?]+)/)?.[1] : null;
+
+          if (url && name && price && id) {
+            items.push({ retailer: 'Woolworths', url, name, price, id });
           }
         } catch (e) {}
       });
