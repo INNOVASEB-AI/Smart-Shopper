@@ -101,35 +101,40 @@ async function crawlAllRetailers() {
   
   // Iterate all search terms; for each term, run all retailers in sequence with delays
   for (const searchQuery of searchTerms) {
-    // Run scrapers with delay between them to avoid getting blocked
-    console.log(`Scraping retailers with query: "${searchQuery}"`);
+    logger.info(`Starting crawl for query: "${searchQuery}"`);
     
-    // Run each scraper with a delay between them
     for (const {retailer, func} of retailerScrapers) {
       try {
-        console.log(`Starting scraper for ${retailer} (term: ${searchQuery})...`);
+        logger.info(`Scraping ${retailer} for "${searchQuery}"...`);
+        const results = await func(searchQuery, retailerLogger);
         
-        if (retailer === "PriceCheck") {
-          console.log(`Using PriceCheck function: ${func.name}`);
+        logger.info(`Scraped ${results.length} items from ${retailer} for "${searchQuery}"`);
+        
+        if (results.length === 0) {
+          logger.warn(`No results from ${retailer} for "${searchQuery}"`);
+          continue;
         }
         
-        const result = await retryWithBackoff(async () => {
-          return await func(searchQuery);
-        });
+        // Normalize and save to Firestore
+        const normalizedResults = results.map(r => normalizeProduct(r, retailer));
+        const validResults = normalizedResults.filter(r => r.name && r.price && r.url);
         
-        results.push({ status: "fulfilled", retailer, value: result });
-        console.log(`Completed scraper for ${retailer} (term: ${searchQuery})`);
+        logger.info(`Valid items after normalization: ${validResults.length}`);
         
-        console.log(`Waiting 15 seconds before starting the next retailer scraper...`);
-        await delay(15000);
+        if (validResults.length > 0) {
+          await saveToFirestore(validResults);
+          logger.info(`Successfully saved ${validResults.length} items from ${retailer} to Firestore!`);
+        }
       } catch (error) {
-        console.error(`Error scraping ${retailer} (term: ${searchQuery}):`, error.message || error);
-        results.push({ status: "rejected", retailer, reason: error });
+        logger.error(`Error scraping ${retailer} for "${searchQuery}": ${error.message}`);
       }
+      
+      // Delay between retailers
+      await new Promise(resolve => setTimeout(resolve, 15000));
     }
-    // Short pause between terms to reduce load
-    console.log('Waiting 20 seconds before the next search term...');
-    await delay(20000);
+    
+    // Delay between search terms
+    await new Promise(resolve => setTimeout(resolve, 30000));
   }
   
   // Collect and process results
