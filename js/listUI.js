@@ -3,8 +3,25 @@ import { strawberryCharacter, emptyListIllustration } from './illustrations.js';
 
 export async function renderListView(navigateToListItems) {
   try {
-    const lists = await getShoppingLists();
+    console.log('Rendering list view...');
+    
     const container = document.getElementById('lists-container');
+    if (!container) {
+      console.error('Lists container not found');
+      return;
+    }
+    
+    // Show loading state
+    container.innerHTML = `
+      <div class="text-center py-6 animate__animated animate__fadeIn">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p class="mt-2 text-sm opacity-70">Loading your lists...</p>
+      </div>
+    `;
+    
+    const lists = await getShoppingLists();
+    console.log('Retrieved lists:', lists.length, 'lists');
+    
     container.innerHTML = '';
 
     if (lists.length === 0) {
@@ -100,8 +117,11 @@ export async function renderListItemsView(listId, removeItemFromList, deleteList
     const totalItems = list.items.length;
     const completedItems = list.items.filter(item => item.completed).length;
     
-    // Add progress bar at the top if there are items
-    if (totalItems > 0) {
+    // Add progress bar at the top if there are items and we're not in add mode
+    const listItemsView = document.getElementById('list-items-view');
+    const isInAddMode = listItemsView && listItemsView.classList.contains('adding');
+    
+    if (totalItems > 0 && !isInAddMode) {
       const progressDiv = document.createElement('div');
       progressDiv.className = 'animate__animated animate__fadeIn';
       const progressPercentage = (completedItems / totalItems) * 100;

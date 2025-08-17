@@ -17,7 +17,7 @@
 --------------------------------------------- */
 :root {
   /* HEADER */
-  --header-bg: #FF6B6B;    /* Coral red header to match screenshot */
+  --header-bg: #2C2C2C;    /* Darker background in light mode */
   --header-text: #FFFFFF;  /* White text for contrast */
 
   /* MAIN */
@@ -56,8 +56,8 @@
 --------------------------------------------- */
 .dark {
   /* HEADER */
-  --header-bg: #FF6B6B;    /* Coral red header to match screenshot */
-  --header-text: #FFFFFF;  /* White text */
+  --header-bg: #EFEFEB;    /* Off white background in dark mode */
+  --header-text: #1A1A1D;  /* Dark text for contrast */
 
   /* MAIN */
   --main-bg: #121212;      /* Material dark background */
@@ -114,7 +114,7 @@ main {
   overflow-y: auto;
   min-height: 0;
   padding-bottom: env(safe-area-inset-bottom, 60px); /* Use safe area inset if available */
-  height: calc(100vh - 60px - 56px); /* Subtract header (56px) and nav (60px) heights */
+  height: calc(100vh - 60px); /* Subtract nav (60px) height only */
 }
 
 /* Remove extra bottom padding when in a list or search view */
@@ -140,23 +140,9 @@ body.showing-search main {
 /* We'll let header/main/nav define their own backgrounds. */
 
 /* --------------------------------------------
-   TAB CONTENT HIDDEN/SHOWN
+   TAB CONTENT HIDDEN/SHOWN - UPDATED FOR CONSISTENCY
 --------------------------------------------- */
-.tab-content {
-  display: none; /* Hidden by default */
-  height: 100%;
-  overflow-y: auto;
-}
-
-/* Allow JavaScript to control tab visibility */
-.tab-content.active {
-  display: block !important; /* Force display when active */
-}
-
-/* Never use !important on display: none to allow JS control */
-.tab-content:not(.active) {
-  display: none;
-}
+/* This section is now handled by the TAB CONTENT STYLING CONSISTENCY section below */
 
 /* Custom scrollbar for tabs */
 .tab-content::-webkit-scrollbar {
@@ -192,10 +178,43 @@ body:not(.showing-list-items) #list-items-view {
 }
 
 /* Fix the back button to ensure it's clickable */
-#back-to-lists-button {
+#back-to-lists-button,
+#search-back-button,
+#cards-back-button,
+#settings-back-button {
   z-index: 40; /* Ensure back button is above other elements */
   cursor: pointer; /* Make sure cursor shows it's clickable */
   position: relative; /* Ensure proper stacking context */
+  transition: all 0.2s ease;
+}
+
+/* Make back button more prominent in add mode */
+#list-items-view.adding #back-to-lists-button {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  padding: 8px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#back-to-lists-button:hover,
+#search-back-button:hover,
+#cards-back-button:hover,
+#settings-back-button:hover {
+  opacity: 0.7;
+  transform: scale(1.1);
+}
+
+#back-to-lists-button:active,
+#search-back-button:active,
+#cards-back-button:active,
+#settings-back-button:active {
+  transform: scale(0.95);
 }
 
 /* Make sure the list items header is always visible and at top */
@@ -206,13 +225,13 @@ body:not(.showing-list-items) #list-items-view {
   left: 0;
   right: 0;
   z-index: 100;
-  background: #121212 !important;
-  color: white !important;
+  background: var(--main-bg) !important;
+  color: var(--main-text) !important;
   height: 56px;
   display: flex;
   align-items: center;
-  box-shadow: none;
-  border-bottom: 1px solid #2A2A2A;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* Style the list title in the header */
@@ -220,46 +239,77 @@ body:not(.showing-list-items) #list-items-view {
   font-size: 1.4rem !important;
   font-weight: 500 !important;
   margin-left: 12px !important;
+  color: var(--main-text) !important;
 }
 
 /* Style the back button in header */
-#back-to-lists-button {
+#back-to-lists-button,
+#search-back-button,
+#cards-back-button,
+#settings-back-button {
   padding: 8px;
-  color: white !important;
+  color: var(--main-text) !important;
+}
+
+/* Style headers with back buttons */
+#search-tab .flex.items-center.mb-4,
+#cards-tab .flex.items-center.mb-4,
+#settings-tab .flex.items-center.mb-4 {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+  position: sticky;
+  top: 0;
+  background: var(--main-bg);
+  z-index: 10;
+}
+
+/* Ensure back buttons are always visible and properly sized */
+#search-back-button,
+#cards-back-button,
+#settings-back-button {
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Add right side header buttons styling */
 #delete-list-button {
-  color: white !important;
+  color: #FF6B6B !important;
 }
 
 /* Container for list items to allow proper scrolling */
 #list-items-container {
   overflow-y: auto;
-  padding: 0 !important;
+  padding: 16px !important;
   padding-top: 96px !important; /* Header height (56px) + progress bar height */
   margin-top: 0 !important;
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #121212;
+  background-color: var(--main-bg);
 }
 
-/* Style individual list item entries to match the screenshot */
+/* Style individual list item entries to match the main pages */
 .list-item-entry {
-  margin: 0 !important;
-  padding: 0 !important;
-  border-radius: 0;
-  background-color: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid #2A2A2A !important;
-  box-shadow: none !important;
-  transition: background-color 0.2s ease;
+  margin: 0 0 12px 0 !important;
+  padding: 16px !important;
+  border-radius: 1.25rem !important;
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08) !important;
+  transition: all 0.3s ease;
 }
 
 /* Style the item container */
 .list-item-entry .flex.items-center {
-  padding: 16px !important;
+  padding: 0 !important;
   position: relative;
 }
 
@@ -302,7 +352,7 @@ body:not(.showing-list-items) #list-items-view {
   font-size: 1.05rem !important;
   font-weight: 400 !important;
   margin: 0;
-  color: white;
+  color: var(--card-text);
 }
 
 /* Style the remove button */
@@ -330,14 +380,14 @@ body:not(.showing-list-items) #list-items-view {
   height: auto !important;
   padding: 12px 20px !important;
   border-radius: 30px !important;
-  background-color: #1E1E1E !important;
+  background-color: var(--accent) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
   bottom: 20px !important;
   right: 20px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  color: #4B95DE !important;
+  color: var(--accent-text) !important;
   font-weight: 500 !important;
   font-size: 1rem !important;
 }
@@ -346,21 +396,21 @@ body:not(.showing-list-items) #list-items-view {
   width: 20px !important;
   height: 20px !important;
   margin-right: 8px !important;
-  color: #4B95DE !important;
+  color: var(--accent-text) !important;
 }
 
 /* Add text after the plus icon */
 #add-more-items-fab::after {
   content: "ADD";
   font-weight: 500;
-  color: #4B95DE;
+  color: var(--accent-text);
   margin-left: 4px;
 }
 
-/* Remove hover scaling on list items to match the design */
+/* Add hover effects to match main pages */
 .list-item-entry:hover {
-  transform: none !important;
-  box-shadow: none !important;
+  transform: scale(1.03) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
 }
 
 /* --------------------------------------------
@@ -508,22 +558,25 @@ button:active, .nav-button:active {
   display: none;
 }
 
-/* Headings */
+/* Headings - Updated for consistency */
 h1, h2, h3 {
-  font-weight: 700;
+  font-weight: 500; /* Reduced to match consistent styling */
   letter-spacing: -0.01em;
 }
 h1 { font-size: 1.5rem; }
-h2 { font-size: 1.15rem; }
-h3 { font-size: 1rem; }
+h2 { font-size: 0.875rem; } /* Standardized to text-sm */
+h3 { font-size: 0.875rem; } /* Standardized to text-sm */
 
-/* Section spacing */
-.p-4, .p-6 {
-  padding-top: 1.5rem !important;
-  padding-bottom: 1.5rem !important;
+/* Section spacing - Updated for consistency */
+.px-4 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
 }
-.mb-4, .mb-6 {
-  margin-bottom: 1.5rem !important;
+.mb-3 {
+  margin-bottom: 0.75rem !important;
+}
+.space-y-1 > * + * {
+  margin-top: 0.25rem !important;
 }
 
 .fab-container {
@@ -834,11 +887,11 @@ button[type="submit"],
    SPECIFIC UI COMPONENTS
 --------------------------------------------- */
 
-/* Style for the "My Shopping Lists" header */
-#list-tab h2 {
-  color: white;
-  font-size: 1.75rem;
-  font-weight: 600;
+/* Style for tab headers - now standardized */
+.tab-content h2 {
+  color: var(--main-text);
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
   letter-spacing: -0.01em;
 }
 
@@ -857,29 +910,18 @@ button[type="submit"],
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* Make header bar match the screenshot exactly */
-header {
-  background-color: #FF6B6B !important;
-  color: white !important;
-  height: 56px !important; /* Fixed height for header */
-  min-height: 56px !important;
-  flex-shrink: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  padding: 0 1rem !important;
-}
+/* Header removed for minimalistic design */
 
-/* Style for the new list button */
-#new-list-button {
-  background-color: var(--accent) !important;
+/* Style for action buttons - now standardized */
+.tab-content button[title] {
+  background: var(--accent) !important;
   color: var(--accent-text) !important;
-  border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
+  border-radius: 9999px !important;
+  padding: 0.5rem !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.2s ease !important;
 }
 
 /* Fix list item name contrast in dark mode */
@@ -981,7 +1023,7 @@ body.dark main {
 
 .header-search-box input {
   width: 100%;
-  padding: 8px 16px 8px 40px;
+  padding: 8px 48px 8px 40px;
   background: rgba(255, 255, 255, 0.15);
   border: none;
   border-radius: 9999px;
@@ -995,6 +1037,144 @@ body.dark main {
   left: 12px;
   transform: translateY(-50%);
   color: rgba(255, 255, 255, 0.7);
+}
+
+/* Voice dictate button styles */
+.voice-dictate-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.2s ease;
+}
+
+.voice-dictate-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.voice-dictate-btn.listening {
+  background: #FF6B6B;
+  color: white;
+  animation: pulse 1.5s infinite;
+}
+
+.voice-dictate-btn.error {
+  background: #FF4444;
+  color: white;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 107, 107, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  25% { transform: translateY(-50%) translateX(-2px); }
+  75% { transform: translateY(-50%) translateX(2px); }
+}
+
+/* Voice status indicator styles */
+.voice-status-indicator {
+  position: absolute;
+  top: 50%;
+  right: 60px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 107, 107, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  z-index: 10;
+}
+
+.voice-status-indicator.hidden {
+  display: none;
+}
+
+.voice-status-text {
+  white-space: nowrap;
+}
+
+.voice-status-dots {
+  display: flex;
+  gap: 2px;
+}
+
+.voice-status-dots span {
+  width: 4px;
+  height: 4px;
+  background: white;
+  border-radius: 50%;
+  animation: voiceDots 1.4s infinite ease-in-out;
+}
+
+.voice-status-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.voice-status-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes voiceDots {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Voice instruction banner styles */
+.voice-instruction-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 16px;
+  margin: 0;
+  border-radius: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+.voice-instruction-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Add placeholder styling */
@@ -1032,7 +1212,8 @@ body.dark main {
 }
 
 .list-view.adding #list-items-title,
-.list-view.adding #delete-list-button {
+.list-view.adding #delete-list-button,
+.list-view.adding #compare-prices-button {
   display: none;
 }
 
@@ -1094,6 +1275,11 @@ body.dark main {
   display: none !important;
 }
 
+/* Hide compare prices button in add mode */
+#list-items-view.adding #compare-prices-button {
+  display: none !important;
+}
+
 /* Ensure proper spacing in add mode */
 #list-items-view.adding .p-4.flex.items-center.border-b {
   padding: 8px 12px;
@@ -1110,11 +1296,7 @@ body.dark main {
   font-size: 0.95rem;
 }
 
-#add-item-manual-btn {
-  width: 36px;
-  height: 36px;
-  padding: 8px;
-}
+
 
 /* Fix tabs to be more compact */
 #item-tabs button {
@@ -1151,6 +1333,7 @@ body.dark main {
   background: #121212 !important;
   margin: 0;
   padding: 0;
+  z-index: 45;
 }
 
 #add-items-view.shown {
@@ -1163,13 +1346,18 @@ body.dark main {
   top: 56px; /* Position immediately below header */
   left: 0;
   right: 0;
-  background: #1A1A1A;
+  background: var(--card-bg);
   padding: 8px 16px;
   z-index: 90; /* Below header but above content */
   margin: 0;
-  border-bottom: 1px solid #2C2C2C;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   width: 100%;
+}
+
+/* Hide progress bar in add mode */
+#list-items-view.adding #list-items-container > div:first-child {
+  display: none !important;
 }
 
 /* Style the progress text */
@@ -1185,7 +1373,7 @@ body.dark main {
 #list-items-container > div:first-child .text-sm {
   font-size: 0.85rem !important;
   font-weight: 500;
-  color: #FFFFFF;
+  color: var(--card-text);
   opacity: 0.85;
 }
 
@@ -1197,7 +1385,7 @@ body.dark main {
   height: 3px !important;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Style the progress bar fill */
@@ -1215,8 +1403,8 @@ body.dark main {
 
 /* Create proper spacing for list item entries */
 .list-item-entry {
-  margin: 0.75rem 1rem;
-  border-radius: 8px;
+  margin: 0 0 12px 0;
+  border-radius: 1.25rem;
 }
 
 /* Ensure the entire content area is visible and scrollable */
@@ -1240,15 +1428,15 @@ body.showing-list-items main {
 
 /* Style the header in add items mode */
 #list-items-view.adding .p-4.flex.items-center.border-b {
-  background: #121212 !important;
-  border-bottom: 1px solid #333 !important;
+  background: var(--main-bg) !important;
+  border-bottom: 1px solid var(--border-color) !important;
   padding: 8px 12px !important;
 }
 
 /* Style the search input in the header */
 .header-search-box input,
 #add-item-input {
-  background: #333 !important;
+  background: rgba(255, 255, 255, 0.15) !important;
   color: white !important;
   border-radius: 30px !important;
   padding: 10px 42px !important;
@@ -1259,7 +1447,7 @@ body.showing-list-items main {
 }
 
 .header-search-box .search-icon {
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
   left: 15px !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
@@ -1267,20 +1455,7 @@ body.showing-list-items main {
   position: absolute !important;
 }
 
-/* Add a yellow plus button in the header when in add mode */
-#add-item-manual-btn {
-  background-color: #FFCC00 !important;
-  color: black !important;
-  width: 42px !important;
-  height: 42px !important;
-  border-radius: 50% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-left: 10px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-  padding: 0 !important;
-}
+
 
 /* Fix the add items view container */
 #add-items-view {
@@ -1290,7 +1465,7 @@ body.showing-list-items main {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #121212 !important;
+  background: var(--main-bg) !important;
   overflow: hidden;
   z-index: 45;
 }
@@ -1302,7 +1477,7 @@ body.showing-list-items main {
 /* Style the tabs in the add items view */
 #item-tabs {
   display: flex;
-  background: #121212 !important;
+  background: #1a1a1a !important;
   border-bottom: 1px solid #333 !important;
   position: relative !important;
   z-index: 10;
@@ -1314,19 +1489,20 @@ body.showing-list-items main {
   font-size: 1.1rem !important;
   font-weight: 500 !important;
   padding: 12px 0 !important;
-  opacity: 0.7;
+  opacity: 0.6;
   border-bottom: 3px solid transparent;
   transition: opacity 0.2s ease, border-color 0.2s ease;
 }
 
 #item-tabs button.active {
   opacity: 1 !important;
-  border-bottom: 3px solid #FFCC00 !important;
+  border-bottom: 3px solid var(--accent) !important;
+  color: white !important;
 }
 
 /* Style the popular/recent items container */
 #popular-items-container {
-  background: #121212 !important;
+  background: var(--main-bg) !important;
   position: relative !important;
   display: block !important;
   height: auto !important;
@@ -1338,7 +1514,7 @@ body.showing-list-items main {
 
 #popular-items-content, 
 #recent-items-content {
-  background: #121212 !important;
+  background: var(--main-bg) !important;
   overflow-y: auto;
   height: calc(100vh - 170px) !important; /* Adjust for header + tabs + done button */
   padding-bottom: 80px !important;
@@ -1393,9 +1569,9 @@ body.showing-list-items main {
   bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
   right: 20px !important;
   z-index: 100 !important;
-  background-color: #4B95DE !important;
-  color: white !important;
-  font-weight: 500 !important;
+  background-color: var(--accent) !important;
+  color: var(--accent-text) !important;
+  font-weight: 600 !important;
   border-radius: 30px !important;
   padding: 12px 30px !important;
   font-size: 1rem !important;
@@ -1479,6 +1655,71 @@ body.showing-list-items main {
 .suggestion-item.bg-gray-700 {
   background-color: #ffcc002a !important;
   border-left: 3px solid #FFCC00;
+}
+
+/* --------------------------------------------
+   TAB CONTENT STYLING CONSISTENCY
+--------------------------------------------- */
+.tab-content {
+  display: none; /* Hidden by default */
+  height: 100%;
+  overflow-y: auto;
+  padding-top: 1.5rem; /* Consistent top padding for all tabs */
+}
+
+/* Allow JavaScript to control tab visibility */
+.tab-content.active {
+  display: block !important; /* Force display when active */
+}
+
+/* Never use !important on display: none to allow JS control */
+.tab-content:not(.active) {
+  display: none;
+}
+
+/* Standardized container padding for all tabs */
+.tab-content .px-4 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Consistent header styling across all tabs */
+.tab-content h2 {
+  font-size: 0.875rem !important; /* text-sm */
+  font-weight: 500 !important; /* font-medium */
+  color: var(--main-text);
+  margin-bottom: 0.75rem !important; /* mb-3 */
+}
+
+/* Consistent spacing for container elements */
+.tab-content .space-y-1 > * + * {
+  margin-top: 0.25rem !important;
+}
+
+/* Consistent button styling across tabs */
+.tab-content button[title] {
+  background: var(--accent) !important;
+  color: var(--accent-text) !important;
+  padding: 0.5rem !important;
+  border-radius: 9999px !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.tab-content button[title]:hover {
+  opacity: 0.9 !important;
+  transform: none !important; /* Remove inconsistent hover transforms */
+}
+
+/* Consistent flex header layout */
+.tab-content .flex.justify-between.items-center {
+  margin-bottom: 0.75rem !important; /* mb-3 standardized */
+}
+
+/* Ensure consistent text sizing in all tabs */
+.tab-content p,
+.tab-content span {
+  font-size: 0.875rem !important; /* text-sm */
+  line-height: 1.25rem !important;
 }
 
 /* --------------------------------------------
@@ -1676,6 +1917,25 @@ body.showing-list-items main {
   display: none !important;
 }
 
+/* Style the add buttons to be consistent with the design */
+.add-popular-item, .add-recent-item {
+  background-color: #4B95DE !important;
+  color: white !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-right: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+.add-popular-item:hover, .add-recent-item:hover {
+  background-color: #3a7bc8 !important;
+  transform: scale(1.05) !important;
+}
+
 /* Style the red X button exactly like Listonic */
 .remove-popular-item {
   position: absolute !important;
@@ -1705,6 +1965,15 @@ body.showing-list-items main {
 .popular-item {
   border-bottom: 1px solid #333 !important;
   margin: 0 !important;
+  padding: 12px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  background: #121212 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.popular-item:hover {
+  background: #1a1a1a !important;
 }
 
 /* Update the item text to match Listonic */
@@ -1712,6 +1981,8 @@ body.showing-list-items main {
   font-size: 16px !important;
   font-weight: 400 !important;
   padding-left: 2px !important;
+  color: white !important;
+  flex: 1 !important;
 }
 
 /* Fix the add items view top position to match header exactly */
@@ -1726,7 +1997,8 @@ body.showing-list-items main {
 
 /* Ensure the tab backgrounds are correct */
 #item-tabs {
-  background: #121212 !important;
+  background: #1a1a1a !important;
+  border-bottom: 1px solid #333 !important;
 }
 
 /* Ensure we have a fixed height for the content for proper scrolling */
@@ -1734,18 +2006,27 @@ body.showing-list-items main {
 #recent-items-content {
   height: calc(100vh - 56px - 48px) !important;
   padding-bottom: 80px !important;
+  background: #121212 !important;
 }
 
 /* Update search style to match Listonic exactly */
 .header-search-box input {
-  background: #333 !important;
+  background: rgba(255, 255, 255, 0.15) !important;
   color: white !important;
+  border: none !important;
+}
+
+.header-search-box input::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 1rem !important;
 }
 
 /* Fix header layout in add mode */
 #list-items-view.adding .p-4.flex.items-center.border-b {
   padding: 8px 16px !important;
   height: 56px !important;
+  background: #2C2C2C !important;
+  border-bottom: 1px solid #333 !important;
 }
 
 /* Fix any mobile-specific issues */
@@ -1768,6 +2049,142 @@ body.showing-list-items main {
   /* Ensure tab styling is correct on mobile */
   #item-tabs {
     height: 48px !important;
-    background: #121212 !important;
+    background: #1a1a1a !important;
   }
+}
+
+/* Mock search results styling */
+#mock-search-results {
+  opacity: 0.4;
+  pointer-events: none; /* Prevent clicking on mock buttons */
+  user-select: none; /* Prevent text selection */
+}
+
+#mock-search-results .p-3 {
+  transition: opacity 0.2s ease;
+}
+
+#mock-search-results h3,
+#mock-search-results p {
+  color: var(--main-text) !important;
+}
+
+#mock-search-results button {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Add a subtle hint that these are mock results */
+#mock-search-results::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, transparent 48%, rgba(255, 255, 255, 0.02) 49%, rgba(255, 255, 255, 0.02) 51%, transparent 52%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+#mock-search-results > div {
+  position: relative;
+  z-index: 0;
+}
+
+/* Search Results Styling */
+#search-results-container {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+#search-results-container .rounded-xl {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+}
+
+#search-results-container .rounded-xl:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: var(--accent);
+}
+
+#search-results-container .add-to-list-button {
+  transition: all 0.2s ease;
+}
+
+#search-results-container .add-to-list-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Custom item styling in search results */
+#search-results-container .rounded-xl:first-child {
+  border: 2px solid var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(255, 186, 8, 0.9) 100%);
+  color: var(--accent-text);
+}
+
+#search-results-container .rounded-xl:first-child .add-to-list-button {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#search-results-container .rounded-xl:first-child .add-to-list-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Suggestions dropdown styling */
+.suggestions-dropdown {
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.suggestions-dropdown .suggestion-item {
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.suggestions-dropdown .suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestions-dropdown .suggestion-item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.suggestions-dropdown .suggestion-item.bg-gray-700 {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Animation for search results */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading indicator styling */
+#loading-indicator {
+  color: var(--accent);
+}
+
+#loading-indicator svg {
+  color: var(--accent) !important;
+}
+
+/* No results message styling */
+#no-results-message {
+  color: var(--main-text);
+  opacity: 0.7;
+  font-style: italic;
 }

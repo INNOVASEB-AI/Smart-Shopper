@@ -31,7 +31,13 @@ let lastUserCached = null;
 // Helper function to get the current user ID or use a fallback for anonymous users
 function getCurrentUserId() {
   const user = auth.currentUser;
-  return user ? user.uid : 'anonymous';
+  if (user) {
+    console.log('Current user ID:', user.uid, 'Email:', user.email);
+    return user.uid;
+  } else {
+    console.log('No authenticated user, using anonymous ID');
+    return 'anonymous';
+  }
 }
 
 // Helper to detect if user changed (to invalidate cache)
@@ -43,6 +49,12 @@ function hasUserChanged() {
     return true;
   }
   return false;
+}
+
+// Force refresh cache for current user
+export function forceRefreshCache() {
+  cachedLists = null;
+  cachedCards = null;
 }
 
 // Migrates any existing lists from localStorage to Firestore for the logged-in user
@@ -72,15 +84,17 @@ async function migrateFromLocalStorage() {
 async function getShoppingListsFromFirestore() {
   const userId = getCurrentUserId();
   try {
+    console.log('Fetching lists from Firestore for user:', userId);
     const listsRef = collection(db, 'users', userId, 'lists');
     const listsSnapshot = await getDocs(listsRef);
     const lists = [];
     listsSnapshot.forEach(doc => {
       lists.push(doc.data());
     });
+    console.log('Successfully loaded', lists.length, 'lists from Firestore');
     return lists;
   } catch (e) {
-    console.error('Failed to load shopping lists from Firestore:', e);
+    console.error('Failed to load shopping lists from Firestore for user', userId, ':', e);
     return [];
   }
 }
@@ -130,11 +144,30 @@ export async function getShoppingLists() {
   if (cachedLists === null) {
     // If user is logged in, check for localStorage migration
     if (auth.currentUser) {
+      console.log('User is signed in, checking for localStorage migration...');
       await migrateFromLocalStorage();
     }
     
-    const lists = await getShoppingListsFromFirestore();
+    // Try to load lists with retry mechanism
+    let lists = [];
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        lists = await getShoppingListsFromFirestore();
+        break;
+      } catch (error) {
+        retryCount++;
+        console.warn(`Failed to load lists (attempt ${retryCount}/${maxRetries}):`, error);
+        if (retryCount < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+        }
+      }
+    }
+    
     cachedLists = lists;
+    console.log('Loaded shopping lists from Firestore:', lists.length, 'lists for user:', getCurrentUserId());
   }
   
   return [...cachedLists]; // Return a copy to prevent direct modification

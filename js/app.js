@@ -5,7 +5,8 @@ import {
   addList as storageAddList,
   deleteList as storageDeleteList,
   addItemToList as storageAddItemToList,
-  removeItemFromList as storageRemoveItemFromList
+  removeItemFromList as storageRemoveItemFromList,
+  forceRefreshCache
 } from './storage.js';
 
 import { showError } from './ui.js';
@@ -75,6 +76,14 @@ let currentCamera = "environment"; // "environment" (back) or "user" (front)
 
 // Retailer information with branding
 let retailersInfo = [];
+
+// Price comparison state
+let currentComparisonData = null;
+let isComparingPrices = false;
+
+// Navigation state tracking
+let navigationHistory = [];
+let currentView = 'list-tab';
 
 // Popular grocery items for quick-add functionality
 const popularGroceryItems = [
@@ -366,6 +375,9 @@ function toggleDarkMode() {
 function showView(viewId) {
   console.log(`showView called for: ${viewId}`);
   
+  // Update current view
+  currentView = viewId;
+  
   // Add or remove body class for list items view
   if (viewId === 'list-items-view') {
     document.body.classList.add('showing-list-items');
@@ -426,6 +438,9 @@ function showView(viewId) {
 
   // Show/hide FAB only on "list-tab"
   const fabContainer = document.querySelector('.fab-container');
+
+  // Update back button visibility
+  updateBackButtonVisibility();
   if (fabContainer) {
     if (viewId === 'list-tab') {
       fabContainer.style.display = '';
@@ -444,6 +459,9 @@ function showView(viewId) {
 function navigateToListItems(listId) {
   console.log(`navigateToListItems called for listId: ${listId}`);
   currentOpenListId = listId;
+  
+  // Add to navigation history
+  navigateToView('list-items-view', currentView);
   
   // Add body class for showing list items
   document.body.classList.add('showing-list-items');
@@ -486,15 +504,11 @@ function navigateToListItems(listId) {
       isAdding = false;
       if (addFab) addFab.classList.remove('hidden');
     }
-    
-    // Then trigger the view change
-    showView('list-items-view');
   }).catch(err => {
     console.error('Error getting shopping lists:', err);
     // Fall back to empty view on error
     emptyListView.classList.remove('hidden');
     if (addFab) addFab.classList.add('hidden');
-    showView('list-items-view');
   });
 }
 
@@ -527,8 +541,8 @@ function navigateBackToLists() {
     listItemsView.classList.remove('animate__fadeOut');
     listItemsView.style.display = 'none';
     
-    // Make sure we're showing the list tab and refresh it
-    showView('list-tab');
+    // Use the navigation system to go back
+    goBack();
     renderListView(navigateToListItems);
   }, 200); // Reduced from 300ms for faster response
 }
@@ -663,36 +677,179 @@ function handleSearch() {
     return;
   }
   
-  document.getElementById("loading-indicator").classList.remove("hidden");
-  document.getElementById("no-results-message").classList.add("hidden");
-  fetchSearchResults(sanitized);
+  // Instead of calling backend, filter popular items locally
+  filterAndDisplaySearchResults(sanitized);
 }
 
 // Create a debounced version of the search function
 const debouncedSearch = debounce(handleSearch, 300);
 
-async function fetchSearchResults(query) {
-  try {
-    // Security: Additional sanitization check before making the request
-    const sanitizedQuery = sanitizeInput(query);
+// New function to filter and display search results from popular items
+function filterAndDisplaySearchResults(query) {
+  console.log("filterAndDisplaySearchResults called with query:", query);
+  
+  const resultsContainer = document.getElementById("search-results-container");
+  const mockResults = document.getElementById("mock-search-results");
+  const loadingIndicator = document.getElementById("loading-indicator");
+  const noResultsMessage = document.getElementById("no-results-message");
+  
+  console.log("Found elements:", {
+    resultsContainer: !!resultsContainer,
+    mockResults: !!mockResults,
+    loadingIndicator: !!loadingIndicator,
+    noResultsMessage: !!noResultsMessage
+  });
+  
+  // Hide loading and mock results
+  if (loadingIndicator) loadingIndicator.classList.add("hidden");
+  if (mockResults) mockResults.style.display = "none";
+  
+  // Clear previous results
+  resultsContainer.innerHTML = "";
+  
+  if (!query || query.length === 0) {
+    // Show mock results when search is empty
+    if (mockResults) mockResults.style.display = "block";
+    if (noResultsMessage) noResultsMessage.classList.add("hidden");
+    console.log("Empty query, showing mock results");
+    return;
+  }
+  
+  // Filter popular items based on search query
+  const matchingItems = popularGroceryItems.filter(item => 
+    item.name.toLowerCase().includes(query.toLowerCase())
+  );
+  
+  console.log(`Found ${matchingItems.length} matching items for query: "${query}"`);
+  
+  // Add the search term itself as a custom item option
+  const customItem = {
+    name: query,
+    icon: groceryIcons.rice, // Default icon for custom items
+    isCustom: true
+  };
+  
+  // Combine matching items with custom item
+  const allResults = [customItem, ...matchingItems];
+  
+  console.log(`Total results: ${allResults.length} (1 custom + ${matchingItems.length} matching)`);
+  
+  if (allResults.length === 0) {
+    if (noResultsMessage) noResultsMessage.classList.remove("hidden");
+    console.log("No results found, showing no results message");
+  } else {
+    if (noResultsMessage) noResultsMessage.classList.add("hidden");
     
-    console.log("Fetching search results for:", sanitizedQuery);
-    const response = await fetch(`http://localhost:3001/api/search?query=${encodeURIComponent(sanitizedQuery)}`);
-    if (!response.ok) throw new Error('Network response was not ok');
-    const data = await response.json();
-    displayResults(data.results);
-  } catch (error) {
-    console.error("Search error:", error);
-    document.getElementById("loading-indicator").classList.add("hidden");
-    document.getElementById("no-results-message").classList.remove("hidden");
+    allResults.forEach((item, index) => {
+      const resultDiv = document.createElement("div");
+      resultDiv.className = "rounded-xl shadow-lg bg-white dark:bg-slate-800 p-4 mb-3 transition-transform duration-300 hover:scale-105 hover:shadow-2xl animate__animated animate__fadeInUp";
+      resultDiv.style.background = "var(--card-bg)";
+      resultDiv.style.color = "var(--card-text)";
+      resultDiv.style.borderColor = "var(--border-color)";
+      
+      // Add custom styling for the first item (custom search term)
+      if (index === 0 && item.isCustom) {
+        resultDiv.style.border = "2px solid var(--accent)";
+        resultDiv.style.background = "var(--accent)";
+        resultDiv.style.color = "var(--accent-text)";
+      }
+
+      resultDiv.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: ${index === 0 && item.isCustom ? 'rgba(255,255,255,0.2)' : 'var(--accent)'};">
+              <span class="text-sm font-bold" style="color: ${index === 0 && item.isCustom ? 'white' : 'var(--accent-text)'}">${item.name.charAt(0).toUpperCase()}</span>
+            </div>
+            <div>
+              <p class="font-medium text-sm">${item.name}</p>
+              <p class="text-xs opacity-70">${item.isCustom ? 'Custom item' : 'Popular item'}</p>
+            </div>
+          </div>
+          <button 
+            class="add-to-list-button px-3 py-2 rounded-lg text-white flex items-center text-sm" 
+            style="background: ${index === 0 && item.isCustom ? 'rgba(255,255,255,0.2)' : 'var(--accent)'}; color: ${index === 0 && item.isCustom ? 'white' : 'var(--accent-text)'}"
+            aria-label="Add ${item.name} to list"
+            data-item-name="${item.name}"
+            data-is-custom="${item.isCustom || false}"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add
+          </button>
+        </div>
+      `;
+      
+      // Add click event to the add button
+      const addButton = resultDiv.querySelector('.add-to-list-button');
+      addButton.addEventListener('click', () => {
+        const itemName = addButton.getAttribute('data-item-name');
+        const isCustom = addButton.getAttribute('data-is-custom') === 'true';
+        
+        console.log(`Add button clicked for: ${itemName} (custom: ${isCustom})`);
+        
+        // Prompt user to select a list
+        promptAddToList({
+          name: itemName,
+          price: null,
+          retailer: isCustom ? 'Custom Item' : 'Popular Item'
+        });
+      });
+      
+      // Also add event listener for the entire result div for better UX
+      resultDiv.addEventListener('click', (e) => {
+        if (!e.target.closest('.add-to-list-button')) {
+          // If clicked outside the button, still trigger the add action
+          const itemName = addButton.getAttribute('data-item-name');
+          const isCustom = addButton.getAttribute('data-is-custom') === 'true';
+          
+          console.log(`Result div clicked for: ${itemName} (custom: ${isCustom})`);
+          
+          promptAddToList({
+            name: itemName,
+            price: null,
+            retailer: isCustom ? 'Custom Item' : 'Popular Item'
+          });
+        }
+      });
+      
+      resultsContainer.appendChild(resultDiv);
+    });
+    
+    console.log(`Rendered ${allResults.length} search result items`);
   }
 }
 
+// Remove the old fetchSearchResults function since we're not using backend
+// async function fetchSearchResults(query) {
+//   try {
+//     // Security: Additional sanitization check before making the request
+//     const sanitizedQuery = sanitizeInput(query);
+//     
+//     console.log("Fetching search results for:", sanitizedQuery);
+//     const response = await fetch(`http://localhost:3001/api/search?query=${encodeURIComponent(sanitizedQuery)}`);
+//     if (!response.ok) throw new Error('Network response was not ok');
+//     const data = await response.json();
+//     displayResults(data.results);
+//   } catch (error) {
+//     console.error("Search error:", error);
+//     document.getElementById("loading-indicator").classList.add("hidden");
+//     document.getElementById("no-results-message").classList.remove("hidden");
+//   }
+// }
+
+// Update the displayResults function to work with our new search
 function displayResults(results) {
   console.log("displayResults called with results:", results);
   const resultsContainer = document.getElementById("search-results-container");
+  const mockResults = document.getElementById("mock-search-results");
   document.getElementById("loading-indicator").classList.add("hidden");
   resultsContainer.innerHTML = "";
+
+  // Hide mock results when displaying actual results
+  if (mockResults) {
+    mockResults.style.display = "none";
+  }
 
   if (!results || results.length === 0) {
     document.getElementById("no-results-message").classList.remove("hidden");
@@ -731,6 +888,20 @@ function displayResults(results) {
           </div>
         </div>
       `;
+      
+      // Add click event to the add button
+      const addButton = resultDiv.querySelector('.add-to-list-button');
+      addButton.addEventListener('click', () => {
+        promptAddToList(product);
+      });
+      
+      // Also add event listener for the entire result div for better UX
+      resultDiv.addEventListener('click', (e) => {
+        if (!e.target.closest('.add-to-list-button')) {
+          promptAddToList(product);
+        }
+      });
+      
       resultsContainer.appendChild(resultDiv);
     });
   }
@@ -749,8 +920,9 @@ function promptAddToList(product) {
     const productInfo = document.getElementById('list-selection-product-info');
     const options = document.getElementById('list-selection-options');
 
-    // Set product info
-    productInfo.textContent = `"${product.name}" (R${product.price} at ${product.retailer})`;
+    // Set product info - handle items without prices
+    const priceText = product.price ? `R${product.price} at ${product.retailer}` : product.retailer;
+    productInfo.textContent = `"${product.name}" (${priceText})`;
     
     // Clear previous options
     options.innerHTML = '';
@@ -888,9 +1060,8 @@ function enhanceAddItemUI() {
   
   const addItemsView = document.getElementById('add-items-view');
   const addItemInput = document.getElementById('add-item-input');
-  const addItemButton = document.getElementById('add-item-manual-btn');
   
-  if (!addItemsView || !addItemInput || !addItemButton) {
+  if (!addItemsView || !addItemInput) {
     console.error('Required elements not found, cannot initialize popular items UI');
     return;
   }
@@ -929,13 +1100,9 @@ function enhanceAddItemUI() {
     </div>
     <div id="popular-items-content" class="overflow-auto pb-24">
       ${popularGroceryItems.map(item => `
-        <div class="popular-item flex items-center p-2 border-b border-gray-700 w-full">
-          <button class="add-popular-item flex items-center justify-center w-10 h-10 min-w-10 rounded-full bg-blue-400 hover:bg-blue-500 transition mr-3" data-item="${item.name}">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-white">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-          </button>
-          <span class="flex-grow text-white">${item.name}</span>
+        <div class="popular-item">
+          <button class="add-popular-item" data-item="${item.name}"></button>
+          <span>${item.name}</span>
         </div>
       `).join('')}
       <div style="height: 80px;"></div> <!-- Extra space at the bottom to ensure content isn't hidden behind DONE button -->
@@ -943,13 +1110,9 @@ function enhanceAddItemUI() {
     <div id="recent-items-content" class="hidden overflow-auto pb-24">
       ${recentItems.length > 0 ? 
         recentItems.map(item => `
-          <div class="popular-item flex items-center p-2 border-b border-gray-700 w-full">
-            <button class="add-recent-item flex items-center justify-center w-10 h-10 min-w-10 rounded-full bg-blue-400 hover:bg-blue-500 transition mr-3" data-item="${item}">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-white">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            </button>
-            <span class="flex-grow text-white">${item}</span>
+          <div class="popular-item">
+            <button class="add-recent-item" data-item="${item}"></button>
+            <span>${item}</span>
           </div>
         `).join('') 
         : 
@@ -1015,14 +1178,12 @@ function enhanceAddItemUI() {
     });
   });
   
-  // Add event listeners for the input and button
+  // Add event listeners for the input
   addItemInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       handleAddItemManually();
     }
   });
-  
-  addItemButton.addEventListener('click', handleAddItemManually);
   
   // Create suggestions dropdown for the input
   let suggestionsDropdown = document.getElementById('suggestions-dropdown');
@@ -1072,11 +1233,25 @@ function enhanceAddItemUI() {
         .filter(item => item.name.toLowerCase().includes(searchTerm))
         .slice(0, 5); // Limit to top 5 matches
       
-      if (matchingItems.length > 0) {
+      // Always add the search term as a custom option if it's not empty
+      const customItem = {
+        name: e.target.value.trim(),
+        isCustom: true
+      };
+      
+      // Combine custom item with matching items
+      const allSuggestions = [customItem, ...matchingItems];
+      
+      if (allSuggestions.length > 0) {
         // Create suggestion HTML
-        suggestionsDropdown.innerHTML = matchingItems.map(item => `
-          <div class="suggestion-item p-2 hover:bg-gray-700 cursor-pointer" data-item="${item.name}">
-            ${item.name}
+        suggestionsDropdown.innerHTML = allSuggestions.map((item, index) => `
+          <div class="suggestion-item p-2 hover:bg-gray-700 cursor-pointer ${index === 0 && item.isCustom ? 'bg-gray-700' : ''}" 
+               data-item="${item.name}" 
+               data-is-custom="${item.isCustom || false}">
+            <div class="flex items-center space-x-2">
+              <span class="text-sm">${item.name}</span>
+              ${index === 0 && item.isCustom ? '<span class="text-xs opacity-70">(Custom)</span>' : ''}
+            </div>
           </div>
         `).join('');
         
@@ -1084,11 +1259,32 @@ function enhanceAddItemUI() {
         suggestionsDropdown.querySelectorAll('.suggestion-item').forEach(item => {
           item.addEventListener('click', () => {
             const selectedItem = item.getAttribute('data-item');
+            const isCustom = item.getAttribute('data-is-custom') === 'true';
             addItemInput.value = selectedItem;
             suggestionsDropdown.classList.add('hidden');
             
-            // Optional: Auto-add the item when selected
-            // handleAddItemManually();
+            // Auto-add the item when selected
+            if (currentOpenListId && selectedItem) {
+              addItemToList(currentOpenListId, {
+                name: selectedItem,
+                price: null,
+                retailer: isCustom ? 'Custom Item' : 'Popular Item'
+              }).then(() => {
+                addToRecentItems(selectedItem);
+                showConfirmation(selectedItem + ' added');
+                // Clear the input after adding
+                addItemInput.value = '';
+                // Re-filter the popular items to show all again
+                addItemInput.dispatchEvent(new Event('input'));
+              }).catch(error => {
+                console.error("Error adding item:", error);
+                if (error.message === 'This item is already in your list.') {
+                  showError(`"${selectedItem}" is already in your list.`);
+                } else {
+                  showError("Failed to add item. Please try again.");
+                }
+              });
+            }
           });
         });
         
@@ -1629,10 +1825,40 @@ document.addEventListener('DOMContentLoaded', () => {
     darkModeToggle.addEventListener('click', toggleDarkMode);
   }
 
+  // Add event listener for dark mode checkbox in settings tab
+  const darkModeCheckbox = document.getElementById('dark-mode-checkbox');
+  if (darkModeCheckbox) {
+    darkModeCheckbox.addEventListener('change', toggleDarkMode);
+  }
+
+  // Set up authentication form switching
+  const showSignupBtn = document.getElementById('show-signup');
+  const showLoginBtn = document.getElementById('show-login');
+  const loginSection = document.getElementById('login-section');
+  const signupSection = document.getElementById('signup-section');
+
+  if (showSignupBtn && showLoginBtn && loginSection && signupSection) {
+    showSignupBtn.addEventListener('click', () => {
+      loginSection.classList.add('hidden');
+      signupSection.classList.remove('hidden');
+      // Clear any existing errors
+      document.getElementById('auth-error').classList.add('hidden');
+      document.getElementById('signup-error').classList.add('hidden');
+    });
+
+    showLoginBtn.addEventListener('click', () => {
+      signupSection.classList.add('hidden');
+      loginSection.classList.remove('hidden');
+      // Clear any existing errors
+      document.getElementById('auth-error').classList.add('hidden');
+      document.getElementById('signup-error').classList.add('hidden');
+    });
+  }
+
   // Set up event handlers for navigation
   document.querySelectorAll(".nav-button").forEach(button => {
     const tabId = button.getAttribute("data-tab");
-    button.addEventListener("click", () => showView(tabId));
+    button.addEventListener("click", () => navigateToView(tabId, currentView));
   });
 
   // Show the list tab by default
@@ -1655,18 +1881,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Add multiple event listeners for better reliability
-    newBackButton.addEventListener('click', navigateBackToLists);
+    newBackButton.addEventListener('click', handleBackButton);
     newBackButton.addEventListener('touchend', function(e) {
       e.preventDefault();
-      navigateBackToLists();
+      handleBackButton();
     });
     
     console.log("Back button event listeners enhanced for reliability");
   }
 
+  // Set up back buttons for all views
+  const backButtons = [
+    'back-to-lists-button',
+    'search-back-button',
+    'cards-back-button', 
+    'settings-back-button'
+  ];
+
+  backButtons.forEach(buttonId => {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      // Remove any existing listeners to prevent duplicates
+      const newButton = button.cloneNode(true);
+      if (button.parentNode) {
+        button.parentNode.replaceChild(newButton, button);
+      }
+      
+      // Add multiple event listeners for better reliability
+      newButton.addEventListener('click', function(e) {
+        console.log(`Back button clicked: ${buttonId}`);
+        e.preventDefault();
+        e.stopPropagation();
+        handleBackButton();
+      });
+      
+      newButton.addEventListener('touchend', function(e) {
+        console.log(`Back button touched: ${buttonId}`);
+        e.preventDefault();
+        e.stopPropagation();
+        handleBackButton();
+      });
+      
+      console.log(`Back button event listeners added for: ${buttonId}`);
+    } else {
+      console.warn(`Back button not found: ${buttonId}`);
+    }
+  });
+
   // Set up event handlers for various buttons
   addButtonHandler("new-list-button", handleNewList);
   addButtonHandler("add-card-button", showAddCardModal);
+  addButtonHandler("compare-prices-button", handleComparePrices);
+  addButtonHandler("close-comparison-modal", hideComparisonModal);
   // Back button handled separately above for more reliability
   addButtonHandler("search-button", handleSearch);
   
@@ -1679,22 +1945,81 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Initialize the list UI and add event listeners
-  renderListView(navigateToListItems);
+  // Check if user is already signed in on page load
+  if (auth.currentUser) {
+    console.log('User already signed in on page load, refreshing lists...');
+    forceRefreshCache();
+    // Small delay to ensure auth state is fully established
+    setTimeout(() => {
+      renderListView(navigateToListItems);
+    }, 200);
+  } else {
+    renderListView(navigateToListItems);
+  }
   
   // Add the popular items enhancement for add mode
   enhanceAddItemUI();
 
+  // Add keyboard support for back button
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      handleBackButton();
+    }
+  });
+
+  // Add browser back button support
+  window.addEventListener('popstate', function(e) {
+    e.preventDefault();
+    handleBackButton();
+  });
+
+  // Refresh lists when user returns to the tab (for signed-in users)
+  window.addEventListener('focus', function() {
+    if (auth.currentUser) {
+      console.log('Window focused, refreshing lists for signed-in user...');
+      forceRefreshCache();
+      renderListView(navigateToListItems);
+    }
+  });
+
   // Fix search functionality
   const searchInput = document.getElementById("search-input");
   if (searchInput) {
+    // Function to handle mock results visibility
+    function toggleMockResults() {
+      const mockResults = document.getElementById("mock-search-results");
+      const searchValue = searchInput.value.trim();
+      
+      if (mockResults) {
+        if (searchValue.length === 0) {
+          // Show mock results when search is empty
+          mockResults.style.display = "block";
+        } else {
+          // Hide mock results when user starts typing
+          mockResults.style.display = "none";
+        }
+      }
+    }
+    
     // Debounce the search for better performance
     const debouncedSearch = debounce(handleSearch, 500);
-    searchInput.addEventListener("input", debouncedSearch);
+    
+    // Combined input handler for search and mock results toggle
+    searchInput.addEventListener("input", (e) => {
+      console.log("Search input changed:", e.target.value);
+      toggleMockResults();
+      debouncedSearch();
+    });
+    
     searchInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") {
         handleSearch();
       }
     });
+    
+    // Initialize mock results visibility on page load
+    toggleMockResults();
   }
 
   // ===== SECURITY: Add secure authentication handling =====
@@ -1755,24 +2080,24 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const email = document.getElementById('signup-email').value.trim();
       const password = document.getElementById('signup-password').value;
-      const authError = document.getElementById('auth-error');
+      const signupError = document.getElementById('signup-error');
       
       // Clear previous errors
-      authError.textContent = '';
-      authError.classList.add('hidden');
+      signupError.textContent = '';
+      signupError.classList.add('hidden');
       
       // Validate email
       if (!isValidEmail(email)) {
-        authError.textContent = 'Please enter a valid email address.';
-        authError.classList.remove('hidden');
+        signupError.textContent = 'Please enter a valid email address.';
+        signupError.classList.remove('hidden');
         return;
       }
       
       // Validate password strength
       const passwordValidation = validatePassword(password);
       if (!passwordValidation.isValid) {
-        authError.textContent = passwordValidation.message;
-        authError.classList.remove('hidden');
+        signupError.textContent = passwordValidation.message;
+        signupError.classList.remove('hidden');
         return;
       }
       
@@ -1785,25 +2110,29 @@ document.addEventListener('DOMContentLoaded', () => {
         rateLimiter.reset('signup');
       } catch (error) {
         console.error('Signup error:', error);
-        authError.textContent = error.message || 'Signup failed. Please try again.';
-        authError.classList.remove('hidden');
+        signupError.textContent = error.message || 'Signup failed. Please try again.';
+        signupError.classList.remove('hidden');
       }
     });
   }
   
   // Listen for auth state changes
   onAuthStateChanged(auth, (user) => {
+    console.log('Auth state changed:', user ? 'User signed in' : 'User signed out');
     currentUser = user;
-    const authForms = document.getElementById('auth-forms');
+    const loginSection = document.getElementById('login-section');
+    const signupSection = document.getElementById('signup-section');
     const userInfo = document.getElementById('user-info');
     const userEmail = document.getElementById('user-email');
+    const authenticatedSettings = document.getElementById('authenticated-settings');
     
     if (user) {
       // User is signed in
       console.log('User signed in:', user.email);
       
-      // Update UI
-      if (authForms) authForms.classList.add('hidden');
+      // Update UI - hide both login and signup sections
+      if (loginSection) loginSection.classList.add('hidden');
+      if (signupSection) signupSection.classList.add('hidden');
       if (userInfo) {
         userInfo.classList.remove('hidden');
         
@@ -1830,137 +2159,175 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
-      // Refresh lists to get the user's data
-      renderListView(navigateToListItems);
+      // Show authenticated settings
+      if (authenticatedSettings) authenticatedSettings.classList.remove('hidden');
+      
+      // Force refresh cache and reload lists for the signed-in user
+      console.log('User signed in, refreshing lists...');
+      forceRefreshCache(); // Clear any cached data
+      
+      // Use a longer delay for the initial auth state change to ensure everything is ready
+      setTimeout(() => {
+        console.log('Refreshing lists after auth state change...');
+        renderListView(navigateToListItems);
+      }, 500); // Longer delay to ensure auth state is fully established
     } else {
       // User is signed out
       console.log('User signed out');
       
-      // Update UI
-      if (authForms) authForms.classList.remove('hidden');
+      // Update UI - show login section by default
+      if (loginSection) loginSection.classList.remove('hidden');
+      if (signupSection) signupSection.classList.add('hidden');
       if (userInfo) userInfo.classList.add('hidden');
       
+      // Hide authenticated settings
+      if (authenticatedSettings) authenticatedSettings.classList.add('hidden');
+      
       // Refresh lists to show anonymous data
+      forceRefreshCache(); // Clear cached data for signed-out user
       renderListView(navigateToListItems);
     }
   });
 
+  // Initialize voice dictation functionality
+  initializeSpeechRecognition();
+  
+  // Add event listener for voice dictate button
+  const voiceButton = document.getElementById('voice-dictate-button');
+  if (voiceButton) {
+    voiceButton.addEventListener('click', toggleVoiceDictation);
+  }
+
   console.log("Initial setup complete.");
+  
+  // Test search functionality after a short delay
+  setTimeout(() => {
+    testSearchFunctionality();
+  }, 1000);
 });
+
+// Global add mode functions
+function enterAddMode() {
+  console.log('Entering add mode');
+  isAdding = true;
+  
+  const emptyListView = document.getElementById('empty-list-view');
+  const addItemsView = document.getElementById('add-items-view');
+  const listsContainer = document.getElementById('list-items-container');
+  const addFab = document.getElementById('add-more-items-fab');
+  const listItemsView = document.getElementById('list-items-view');
+  const headerSearchBox = document.querySelector('.header-search-box');
+  const addItemInput = document.getElementById('add-item-input');
+  
+  // Mark the list view as being in "adding" mode for CSS selectors
+  if (listItemsView) {
+    listItemsView.classList.add('adding');
+    
+    // Ensure the header search box is visible
+    if (headerSearchBox) {
+      headerSearchBox.style.display = 'flex';
+      
+      // Force display of header searchbox
+      setTimeout(() => {
+        headerSearchBox.style.display = 'flex';
+      }, 50);
+    }
+  }
+  
+  emptyListView.classList.add('hidden');
+  listsContainer.classList.add('hidden');
+  addItemsView.classList.remove('hidden');
+  addItemsView.classList.add('shown'); // Add the shown class to trigger CSS display rules
+  if (addFab) addFab.classList.add('hidden');
+  
+  // Initialize suggestions
+  enhanceAddItemUI();
+  
+  // Clear any existing progress bar from the container
+  const listItemsContainer = document.getElementById('list-items-container');
+  if (listItemsContainer) {
+    const firstChild = listItemsContainer.firstElementChild;
+    if (firstChild && firstChild.classList.contains('animate__animated')) {
+      firstChild.remove();
+    }
+  }
+  
+  // Focus the input with multiple attempts to make sure it works
+  if (addItemInput) {
+    addItemInput.focus();
+    
+    // Multiple attempts to ensure focus works
+    setTimeout(() => {
+      addItemInput.focus();
+      addItemInput.click();
+    }, 50);
+    
+    setTimeout(() => {
+      addItemInput.focus();
+    }, 200);
+  }
+}
+
+function exitAddMode() {
+  console.log('Exiting add mode');
+  console.log('Current view before exit:', currentView);
+  console.log('Current open list ID:', currentOpenListId);
+  isAdding = false;
+  
+  const emptyListView = document.getElementById('empty-list-view');
+  const addItemsView = document.getElementById('add-items-view');
+  const listsContainer = document.getElementById('list-items-container');
+  const addFab = document.getElementById('add-more-items-fab');
+  const listItemsView = document.getElementById('list-items-view');
+  const headerSearchBox = document.querySelector('.header-search-box');
+  
+  // Remove the adding class from the list view
+  if (listItemsView) {
+    listItemsView.classList.remove('adding');
+    // Ensure the header search box is hidden
+    if (headerSearchBox) {
+      headerSearchBox.style.display = 'none';
+    }
+  }
+  
+  // Hide add items view
+  addItemsView.classList.remove('shown');
+  addItemsView.classList.add('hidden');
+  
+  // Get the current list and check if it has items
+  getShoppingLists().then(lists => {
+    const currentList = lists.find(list => list.id === currentOpenListId);
+    
+    if (!currentList || currentList.items.length === 0) {
+      // Show empty state if no items
+      console.log('Showing empty list view');
+      emptyListView.classList.remove('hidden');
+      listsContainer.classList.add('hidden');
+      if (addFab) addFab.classList.add('hidden');
+    } else {
+      // Show the list items if there are items
+      console.log('Showing list items');
+      emptyListView.classList.add('hidden');
+      listsContainer.classList.remove('hidden');
+      renderListItemsView(currentOpenListId, removeItemFromList, deleteList, navigateBackToLists);
+      if (addFab) addFab.classList.remove('hidden');
+    }
+  }).catch(err => {
+    console.error('Error getting shopping lists:', err);
+    // Fall back to empty view on error
+    emptyListView.classList.remove('hidden');
+    listsContainer.classList.add('hidden');
+    if (addFab) addFab.classList.add('hidden');
+  });
+}
 
 // Set up handlers for switching between empty and add modes
 function setupListModeHandlers() {
   // Element refs
   const startAddBtn = document.getElementById('start-adding-button');
   const doneAddBtn = document.getElementById('done-adding-button');
-  const addManualBtn = document.getElementById('add-item-manual-btn');
   const addInput = document.getElementById('add-item-input');
   const addFab = document.getElementById('add-more-items-fab');
-
-  // Enter add-mode: hide empty state, show the input + suggestions
-  function enterAddMode() {
-    console.log('Entering add mode');
-    isAdding = true;
-    
-    const emptyListView = document.getElementById('empty-list-view');
-    const addItemsView = document.getElementById('add-items-view');
-    const listsContainer = document.getElementById('list-items-container');
-    const addFab = document.getElementById('add-more-items-fab');
-    const listItemsView = document.getElementById('list-items-view');
-    const headerSearchBox = document.querySelector('.header-search-box');
-    const addItemInput = document.getElementById('add-item-input');
-    
-    // Mark the list view as being in "adding" mode for CSS selectors
-    if (listItemsView) {
-      listItemsView.classList.add('adding');
-      
-      // Ensure the header search box is visible
-      if (headerSearchBox) {
-        headerSearchBox.style.display = 'flex';
-        
-        // Force display of header searchbox
-        setTimeout(() => {
-          headerSearchBox.style.display = 'flex';
-        }, 50);
-      }
-    }
-    
-    emptyListView.classList.add('hidden');
-    listsContainer.classList.add('hidden');
-    addItemsView.classList.remove('hidden');
-    addItemsView.classList.add('shown'); // Add the shown class to trigger CSS display rules
-    if (addFab) addFab.classList.add('hidden');
-    
-    // Initialize suggestions
-    enhanceAddItemUI();
-    
-    // Focus the input with multiple attempts to make sure it works
-    if (addItemInput) {
-      addItemInput.focus();
-      
-      // Multiple attempts to ensure focus works
-      setTimeout(() => {
-        addItemInput.focus();
-        addItemInput.click();
-      }, 50);
-      
-      setTimeout(() => {
-        addItemInput.focus();
-      }, 200);
-    }
-  }
-
-  // Exit add-mode: re-show empty graphic or items list
-  function exitAddMode() {
-    console.log('Exiting add mode');
-    isAdding = false;
-    
-    const emptyListView = document.getElementById('empty-list-view');
-    const addItemsView = document.getElementById('add-items-view');
-    const listsContainer = document.getElementById('list-items-container');
-    const addFab = document.getElementById('add-more-items-fab');
-    const listItemsView = document.getElementById('list-items-view');
-    const headerSearchBox = document.querySelector('.header-search-box');
-    
-    // Remove the adding class from the list view
-    if (listItemsView) {
-      listItemsView.classList.remove('adding');
-      // Ensure the header search box is hidden
-      if (headerSearchBox) {
-        headerSearchBox.style.display = 'none';
-      }
-    }
-    
-    // Hide add items view
-    addItemsView.classList.remove('shown');
-    addItemsView.classList.add('hidden');
-    
-    // Get the current list and check if it has items
-    getShoppingLists().then(lists => {
-      const currentList = lists.find(list => list.id === currentOpenListId);
-      
-      if (!currentList || currentList.items.length === 0) {
-        // Show empty state if no items
-        console.log('Showing empty list view');
-        emptyListView.classList.remove('hidden');
-        listsContainer.classList.add('hidden');
-        if (addFab) addFab.classList.add('hidden');
-      } else {
-        // Show the list items if there are items
-        console.log('Showing list items');
-        emptyListView.classList.add('hidden');
-        listsContainer.classList.remove('hidden');
-        renderListItemsView(currentOpenListId, removeItemFromList, deleteList, navigateBackToLists);
-        if (addFab) addFab.classList.remove('hidden');
-      }
-    }).catch(err => {
-      console.error('Error getting shopping lists:', err);
-      // Fall back to empty view on error
-      emptyListView.classList.remove('hidden');
-      listsContainer.classList.add('hidden');
-      if (addFab) addFab.classList.add('hidden');
-    });
-  }
 
   // Button event hooks
   if (startAddBtn) {
@@ -1985,9 +2352,7 @@ function setupListModeHandlers() {
     });
   }
   
-  if (addManualBtn) {
-    addManualBtn.addEventListener('click', handleAddItemManually);
-  }
+
 }
 
 // Storage‑backed CRUD wrappers
@@ -2109,3 +2474,788 @@ function addToRecentItems(itemName) {
     localStorage.setItem('recentItems', JSON.stringify(trimmedItems));
   }
 }
+
+// Price Comparison Functions
+async function handleComparePrices() {
+  if (!currentOpenListId) {
+    showError('No list selected for comparison.');
+    return;
+  }
+
+  try {
+    isComparingPrices = true;
+    showComparisonLoading();
+    
+    // Get the current list
+    const lists = await getShoppingLists();
+    const currentList = lists.find(list => list.id === currentOpenListId);
+    
+    if (!currentList || currentList.items.length === 0) {
+      showError('No items in the current list to compare.');
+      return;
+    }
+
+    // Get item names from the list
+    const itemNames = currentList.items.map(item => item.name);
+    
+    // Perform price comparison
+    const comparisonResults = await comparePricesAcrossStores(itemNames);
+    
+    // Store the results and show them
+    currentComparisonData = {
+      listId: currentOpenListId,
+      listName: currentList.name,
+      items: itemNames,
+      results: comparisonResults,
+      timestamp: new Date().toISOString()
+    };
+    
+    renderComparisonResults(comparisonResults);
+    showComparisonModal();
+    
+  } catch (error) {
+    console.error('Price comparison error:', error);
+    showError('Failed to compare prices. Please try again.');
+  } finally {
+    isComparingPrices = false;
+    hideComparisonLoading();
+  }
+}
+
+
+
+async function comparePricesAcrossStores(itemNames) {
+  const stores = ['Checkers', 'Pick n Pay', 'Woolworths', 'Shoprite', 'Makro'];
+  const results = [];
+  
+  for (const store of stores) {
+    try {
+      const storeTotal = await calculateStoreTotal(itemNames, store);
+      results.push({
+        store: store,
+        total: storeTotal,
+        items: itemNames.length,
+        savings: 0 // Will be calculated after all stores are processed
+      });
+    } catch (error) {
+      console.error(`Error calculating total for ${store}:`, error);
+      results.push({
+        store: store,
+        total: null,
+        items: itemNames.length,
+        error: 'Unable to calculate prices'
+      });
+    }
+  }
+  
+  // Sort by total price (lowest first), excluding stores with errors
+  const validResults = results.filter(result => result.total !== null);
+  const invalidResults = results.filter(result => result.total === null);
+  
+  validResults.sort((a, b) => a.total - b.total);
+  
+  // Calculate savings relative to the cheapest store
+  if (validResults.length > 0) {
+    const cheapestTotal = validResults[0].total;
+    validResults.forEach(result => {
+      result.savings = result.total - cheapestTotal;
+    });
+  }
+  
+  return [...validResults, ...invalidResults];
+}
+
+async function calculateStoreTotal(itemNames, store) {
+  // This is a mock implementation - in a real app, this would call your backend API
+  // to get actual prices from the database
+  
+  const mockPrices = {
+    'Checkers': {
+      'bread': 15.99,
+      'bagels': 12.50,
+      'cookies': 8.99,
+      'almond milk': 25.99,
+      'chicken': 45.99,
+      'milk': 18.99,
+      'butter': 22.50,
+      'cheese': 35.99,
+      'eggs': 28.99,
+      'yogurt': 15.99
+    },
+    'Pick n Pay': {
+      'bread': 16.99,
+      'bagels': 13.50,
+      'cookies': 9.99,
+      'almond milk': 27.99,
+      'chicken': 47.99,
+      'milk': 19.99,
+      'butter': 23.50,
+      'cheese': 37.99,
+      'eggs': 29.99,
+      'yogurt': 16.99
+    },
+    'Woolworths': {
+      'bread': 18.99,
+      'bagels': 15.50,
+      'cookies': 11.99,
+      'almond milk': 29.99,
+      'chicken': 52.99,
+      'milk': 22.99,
+      'butter': 26.50,
+      'cheese': 42.99,
+      'eggs': 32.99,
+      'yogurt': 18.99
+    },
+    'Shoprite': {
+      'bread': 14.99,
+      'bagels': 11.50,
+      'cookies': 7.99,
+      'almond milk': 23.99,
+      'chicken': 42.99,
+      'milk': 17.99,
+      'butter': 20.50,
+      'cheese': 32.99,
+      'eggs': 26.99,
+      'yogurt': 14.99
+    },
+    'Makro': {
+      'bread': 13.99,
+      'bagels': 10.50,
+      'cookies': 6.99,
+      'almond milk': 21.99,
+      'chicken': 39.99,
+      'milk': 16.99,
+      'butter': 19.50,
+      'cheese': 29.99,
+      'eggs': 24.99,
+      'yogurt': 13.99
+    }
+  };
+  
+  let total = 0;
+  let foundItems = 0;
+  
+  for (const itemName of itemNames) {
+    const lowerItemName = itemName.toLowerCase();
+    
+    // Try to find a matching item in the store's price list
+    for (const [priceItem, price] of Object.entries(mockPrices[store])) {
+      if (priceItem.toLowerCase().includes(lowerItemName) || 
+          lowerItemName.includes(priceItem.toLowerCase())) {
+        total += price;
+        foundItems++;
+        break;
+      }
+    }
+    
+    // If no exact match found, add a default price
+    if (foundItems < itemNames.indexOf(itemName) + 1) {
+      total += 20; // Default price for items not in our mock data
+    }
+  }
+  
+  return Math.round(total * 100) / 100; // Round to 2 decimal places
+}
+
+function renderComparisonResults(results) {
+  const container = document.getElementById('comparison-results');
+  const loadingState = document.getElementById('comparison-loading');
+  
+  // Hide loading state
+  loadingState.classList.add('hidden');
+  
+  // Clear previous results
+  container.innerHTML = '';
+  
+  if (results.length === 0) {
+    container.innerHTML = '<p class="text-center text-sm opacity-70" style="color: var(--main-text);">No comparison results available.</p>';
+    return;
+  }
+  
+  // Show results
+  container.classList.remove('hidden');
+  
+  results.forEach((result, index) => {
+    const card = document.createElement('div');
+    card.className = 'p-3 rounded-lg border transition-all duration-200 hover:scale-105';
+    card.style.cssText = `
+      background: var(--card-bg);
+      color: var(--card-text);
+      border-color: var(--border-color);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    `;
+    
+    if (result.total === null) {
+      // Error state
+      card.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+              <span class="text-sm font-bold text-gray-500">${result.store.charAt(0)}</span>
+            </div>
+            <div>
+              <h3 class="font-medium text-sm">${result.store}</h3>
+              <p class="text-xs opacity-70">${result.error}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs opacity-50">--</span>
+          </div>
+        </div>
+      `;
+    } else {
+      // Success state
+      const isCheapest = index === 0 && result.savings === 0;
+      const savingsText = result.savings > 0 ? `+R${result.savings.toFixed(2)}` : '';
+      
+      card.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center ${isCheapest ? 'bg-green-100' : 'bg-gray-100'}" style="background: ${isCheapest ? 'var(--accent)' : 'var(--card-bg)'}; color: ${isCheapest ? 'var(--accent-text)' : 'var(--card-text)'}">
+              <span class="text-sm font-bold">${result.store.charAt(0)}</span>
+            </div>
+            <div>
+              <h3 class="font-medium text-sm">${result.store}</h3>
+              <p class="text-xs opacity-70">${result.items} items</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-base font-bold">R${result.total.toFixed(2)}</div>
+            ${savingsText ? `<div class="text-xs ${result.savings > 0 ? 'text-red-500' : 'text-green-500'}">${savingsText}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+    
+    container.appendChild(card);
+  });
+}
+
+function showComparisonLoading() {
+  const loadingState = document.getElementById('comparison-loading');
+  const emptyState = document.getElementById('comparison-empty');
+  const resultsContainer = document.getElementById('comparison-results');
+  
+  loadingState.classList.remove('hidden');
+  emptyState.classList.add('hidden');
+  resultsContainer.classList.add('hidden');
+}
+
+function hideComparisonLoading() {
+  const loadingState = document.getElementById('comparison-loading');
+  loadingState.classList.add('hidden');
+}
+
+function showComparisonModal() {
+  const modal = document.getElementById('price-comparison-modal');
+  modal.classList.remove('hidden');
+  modal.classList.add('animate__fadeIn');
+  
+  // Add click handler to close modal when clicking outside
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      hideComparisonModal();
+    }
+  });
+}
+
+function hideComparisonModal() {
+  const modal = document.getElementById('price-comparison-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('animate__fadeIn');
+}
+
+// Enhanced navigation system
+function navigateToView(viewId, fromView = null) {
+  console.log(`navigateToView called: ${viewId} from ${fromView}`);
+  
+  // Add to navigation history if coming from another view
+  if (fromView && fromView !== viewId) {
+    navigationHistory.push(fromView);
+    console.log(`Added ${fromView} to navigation history. History:`, navigationHistory);
+  }
+  
+  currentView = viewId;
+  showView(viewId);
+}
+
+function goBack() {
+  console.log("goBack called. History:", navigationHistory);
+  
+  if (navigationHistory.length > 0) {
+    const previousView = navigationHistory.pop();
+    console.log(`Navigating back to: ${previousView}`);
+    currentView = previousView;
+    showView(previousView);
+    
+    // Update back button visibility based on navigation history
+    updateBackButtonVisibility();
+  } else {
+    // If no history, go to default view (list-tab)
+    console.log("No navigation history, going to default view");
+    currentView = 'list-tab';
+    showView('list-tab');
+    
+    // Hide back buttons when no history
+    updateBackButtonVisibility();
+  }
+}
+
+// Function to update back button visibility based on navigation state
+function updateBackButtonVisibility() {
+  const backButtons = [
+    'search-back-button',
+    'cards-back-button', 
+    'settings-back-button'
+  ];
+  
+  backButtons.forEach(buttonId => {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      if (navigationHistory.length > 0 || currentView === 'list-items-view') {
+        button.style.opacity = '1';
+        button.style.pointerEvents = 'auto';
+      } else {
+        button.style.opacity = '0.5';
+        button.style.pointerEvents = 'none';
+      }
+    }
+  });
+}
+
+// Universal back button handler
+function handleBackButton() {
+  console.log("handleBackButton called");
+  
+  // Check if we're in list-items-view
+  if (currentView === 'list-items-view') {
+    // Check if we're in add mode
+    const listItemsView = document.getElementById('list-items-view');
+    if (listItemsView && listItemsView.classList.contains('adding')) {
+      console.log("In add mode, exiting add mode");
+      console.log("Current view:", currentView);
+      console.log("List items view classes:", listItemsView.classList.toString());
+      exitAddMode();
+      return;
+    }
+    
+    // Not in add mode, navigate back to lists
+    console.log("Not in add mode, navigating back to lists");
+    navigateBackToLists();
+    return;
+  }
+  
+  // Check if any modal is open
+  const modals = [
+    'modal-overlay',
+    'add-card-modal', 
+    'list-selection-modal',
+    'card-detail-modal',
+    'price-comparison-modal'
+  ];
+  
+  for (const modalId of modals) {
+    const modal = document.getElementById(modalId);
+    if (modal && !modal.classList.contains('hidden')) {
+      console.log(`Closing modal: ${modalId}`);
+      closeAllModals();
+      return;
+    }
+  }
+  
+  // If no modal is open, use general back navigation
+  goBack();
+}
+
+// Enhanced modal close function that works with all modals
+function closeAllModals() {
+  console.log("closeAllModals called");
+  
+  const modals = [
+    'modal-overlay',
+    'add-card-modal', 
+    'list-selection-modal',
+    'card-detail-modal',
+    'price-comparison-modal'
+  ];
+  
+  for (const modalId of modals) {
+    const modal = document.getElementById(modalId);
+    if (modal && !modal.classList.contains('hidden')) {
+      console.log(`Closing modal: ${modalId}`);
+      modal.classList.add('hidden');
+      
+      // Special handling for specific modals
+      if (modalId === 'add-card-modal') {
+        hideAddCardModal();
+      } else if (modalId === 'price-comparison-modal') {
+        hideComparisonModal();
+      }
+      
+      return;
+    }
+  }
+}
+
+// Voice Dictation Functionality
+let recognition = null;
+let isListening = false;
+
+// Initialize speech recognition
+function initializeSpeechRecognition() {
+  // Check if browser supports speech recognition
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    console.warn('Speech recognition not supported in this browser');
+    return false;
+  }
+
+  // Create speech recognition instance
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  
+  // Configure recognition settings
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US'; // Can be changed to 'af-ZA' for Afrikaans or other languages
+  
+  // Set up event handlers
+  recognition.onstart = handleSpeechStart;
+  recognition.onresult = handleSpeechResult;
+  recognition.onerror = handleSpeechError;
+  recognition.onend = handleSpeechEnd;
+  
+  return true;
+}
+
+// Handle speech recognition start
+function handleSpeechStart() {
+  isListening = true;
+  const voiceButton = document.getElementById('voice-dictate-button');
+  const voiceStatusIndicator = document.getElementById('voice-status-indicator');
+  
+  if (voiceButton) {
+    voiceButton.classList.add('listening');
+    voiceButton.title = 'Listening... Click to stop';
+  }
+  
+  if (voiceStatusIndicator) {
+    voiceStatusIndicator.classList.remove('hidden');
+  }
+  
+  console.log('Speech recognition started');
+}
+
+// Handle speech recognition result
+function handleSpeechResult(event) {
+  const transcript = event.results[0][0].transcript.trim();
+  console.log('Speech recognized:', transcript);
+  
+  // Check for stop commands first
+  const stopCommands = ['done', 'stop', 'finished', 'end', 'complete', 'that\'s all', 'that is all'];
+  const isStopCommand = stopCommands.some(cmd => transcript.toLowerCase().includes(cmd));
+  
+  if (isStopCommand) {
+    // User wants to stop voice dictation
+    showConfirmation('Voice dictation stopped');
+    recognition.stop();
+    return;
+  }
+  
+  // Check if the transcript contains "next" to separate items
+  const items = transcript.toLowerCase().split(/\bnext\b/).map(item => item.trim()).filter(item => item.length > 0);
+  
+  // Show what was recognized
+  if (items.length === 1) {
+    showConfirmation(`Recognized: "${items[0]}"`);
+  } else if (items.length > 1) {
+    showConfirmation(`Recognized ${items.length} items: ${items.join(', ')}`);
+  }
+  
+  if (items.length === 1) {
+    // Single item - add it directly to the input field
+    const addItemInput = document.getElementById('add-item-input');
+    if (addItemInput) {
+      addItemInput.value = items[0];
+      
+      // Trigger input event to update any listeners
+      addItemInput.dispatchEvent(new Event('input', { bubbles: true }));
+      
+      // Automatically add the item after a short delay
+      setTimeout(() => {
+        if (addItemInput.value.trim()) {
+          addItemFromInput();
+        }
+      }, 1000);
+    }
+  } else if (items.length > 1) {
+    // Multiple items - add them sequentially
+    addMultipleItemsSequentially(items);
+  }
+}
+
+// Handle speech recognition error
+function handleSpeechError(event) {
+  console.error('Speech recognition error:', event.error);
+  
+  const voiceButton = document.getElementById('voice-dictate-button');
+  const voiceStatusIndicator = document.getElementById('voice-status-indicator');
+  
+  if (voiceButton) {
+    voiceButton.classList.remove('listening');
+    voiceButton.classList.add('error');
+  }
+  
+  if (voiceStatusIndicator) {
+    voiceStatusIndicator.classList.add('hidden');
+  }
+  
+  // Show error message
+  let errorMessage = 'Voice input error';
+  switch (event.error) {
+    case 'no-speech':
+      errorMessage = 'No speech detected. Please try again.';
+      break;
+    case 'audio-capture':
+      errorMessage = 'Microphone not found. Please check your microphone.';
+      break;
+    case 'not-allowed':
+      errorMessage = 'Microphone access denied. Please allow microphone access.';
+      break;
+    case 'network':
+      errorMessage = 'Network error. Please check your connection.';
+      break;
+    default:
+      errorMessage = `Voice input error: ${event.error}`;
+  }
+  
+  showError(errorMessage);
+  
+  // Remove error class after animation
+  setTimeout(() => {
+    if (voiceButton) {
+      voiceButton.classList.remove('error');
+    }
+  }, 2000);
+  
+  isListening = false;
+}
+
+// Handle speech recognition end
+function handleSpeechEnd() {
+  isListening = false;
+  const voiceButton = document.getElementById('voice-dictate-button');
+  const voiceStatusIndicator = document.getElementById('voice-status-indicator');
+  
+  if (voiceButton) {
+    voiceButton.classList.remove('listening');
+    voiceButton.title = 'Voice Dictation';
+  }
+  
+  if (voiceStatusIndicator) {
+    voiceStatusIndicator.classList.add('hidden');
+  }
+  
+  console.log('Speech recognition ended');
+}
+
+// Toggle voice dictation
+function toggleVoiceDictation() {
+  if (!recognition) {
+    if (!initializeSpeechRecognition()) {
+      showError('Voice dictation is not supported in your browser. Please use a modern browser like Chrome or Edge.');
+      return;
+    }
+  }
+  
+  if (isListening) {
+    // Stop listening
+    recognition.stop();
+  } else {
+    // Start listening
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      showError('Failed to start voice dictation. Please try again.');
+    }
+  }
+}
+
+// Add item from input field (helper function)
+function addItemFromInput() {
+  const addItemInput = document.getElementById('add-item-input');
+  if (!addItemInput || !currentOpenListId) return;
+  
+  const itemName = addItemInput.value.trim();
+  if (!itemName) return;
+  
+  // Add the item to the list with "Voice Input" as retailer
+  addItemToList(currentOpenListId, {
+    name: itemName,
+    price: null,
+    retailer: 'Voice Input'
+  }).then(() => {
+    // Add to recent items
+    addToRecentItems(itemName);
+    
+    // Clear the input field
+    addItemInput.value = '';
+    
+    // Show a visual confirmation
+    showConfirmation(itemName + ' added via voice');
+    
+    // Re-initialize popular items UI to ensure event listeners are updated
+    setTimeout(() => {
+      enhanceAddItemUI();
+      
+      // Keep focus on the input for adding more items
+      const newInput = document.getElementById('add-item-input');
+      if (newInput) {
+        newInput.focus();
+      }
+    }, 100);
+    
+  }).catch(error => {
+    console.error("Error adding item to list:", error);
+    
+    // Show user-friendly message for duplicate items
+    if (error.message === 'This item is already in your list.') {
+      showError(`"${itemName}" is already in your list.`);
+    } else {
+      showError("Failed to add item to list. Please try again.");
+    }
+    
+    // Keep focus on the input
+    addItemInput.focus();
+  });
+}
+
+// Add multiple items sequentially from voice input
+function addMultipleItemsSequentially(items) {
+  if (!currentOpenListId || items.length === 0) return;
+  
+  let currentIndex = 0;
+  const totalItems = items.length;
+  
+  // Show initial status
+  showConfirmation(`Adding ${totalItems} items via voice...`);
+  
+  // Update voice status indicator to show processing
+  const voiceStatusIndicator = document.getElementById('voice-status-indicator');
+  if (voiceStatusIndicator) {
+    const statusText = voiceStatusIndicator.querySelector('.voice-status-text');
+    if (statusText) {
+      statusText.textContent = `Processing ${totalItems} items...`;
+    }
+  }
+  
+  function addNextItem() {
+    if (currentIndex >= items.length) {
+      // All items added
+      showConfirmation(`Successfully added ${totalItems} items via voice!`);
+      
+      // Reset voice status indicator
+      if (voiceStatusIndicator) {
+        const statusText = voiceStatusIndicator.querySelector('.voice-status-text');
+        if (statusText) {
+          statusText.textContent = 'Listening...';
+        }
+      }
+      return;
+    }
+    
+    const itemName = items[currentIndex].trim();
+    if (!itemName) {
+      currentIndex++;
+      addNextItem();
+      return;
+    }
+    
+    // Update status indicator with current progress
+    if (voiceStatusIndicator) {
+      const statusText = voiceStatusIndicator.querySelector('.voice-status-text');
+      if (statusText) {
+        statusText.textContent = `Adding ${itemName} (${currentIndex + 1}/${totalItems})`;
+      }
+    }
+    
+    // Add the current item
+    addItemToList(currentOpenListId, {
+      name: itemName,
+      price: null,
+      retailer: 'Voice Input'
+    }).then(() => {
+      // Add to recent items
+      addToRecentItems(itemName);
+      
+      // Show progress
+      const progress = currentIndex + 1;
+      showConfirmation(`${itemName} added (${progress}/${totalItems})`);
+      
+      currentIndex++;
+      
+      // Add next item after a short delay
+      setTimeout(addNextItem, 800);
+      
+    }).catch(error => {
+      console.error("Error adding item to list:", error);
+      
+      // Show user-friendly message for duplicate items
+      if (error.message === 'This item is already in your list.') {
+        showConfirmation(`${itemName} already in list (${currentIndex + 1}/${totalItems})`);
+      } else {
+        showConfirmation(`Failed to add ${itemName} (${currentIndex + 1}/${totalItems})`);
+      }
+      
+      currentIndex++;
+      
+      // Continue with next item
+      setTimeout(addNextItem, 800);
+    });
+  }
+  
+  // Start adding items
+  addNextItem();
+}
+
+// Test function to verify search functionality
+function testSearchFunctionality() {
+  console.log("=== Testing Search Functionality ===");
+  
+  // Test 1: Check if popular items are loaded
+  console.log(`Popular items count: ${popularGroceryItems.length}`);
+  console.log("Sample popular items:", popularGroceryItems.slice(0, 5).map(item => item.name));
+  
+  // Test 2: Check if search elements exist
+  const searchInput = document.getElementById("search-input");
+  const resultsContainer = document.getElementById("search-results-container");
+  const mockResults = document.getElementById("mock-search-results");
+  
+  console.log("Search elements found:", {
+    searchInput: !!searchInput,
+    resultsContainer: !!resultsContainer,
+    mockResults: !!mockResults
+  });
+  
+  // Test 3: Test filtering logic
+  const testQuery = "milk";
+  const matchingItems = popularGroceryItems.filter(item => 
+    item.name.toLowerCase().includes(testQuery.toLowerCase())
+  );
+  
+  console.log(`Test query "${testQuery}" found ${matchingItems.length} matches:`, 
+    matchingItems.map(item => item.name));
+  
+  // Test 4: Simulate search
+  if (searchInput) {
+    searchInput.value = testQuery;
+    searchInput.dispatchEvent(new Event('input'));
+    console.log("Search simulation completed");
+  }
+  
+  console.log("=== Search Test Complete ===");
+}
+
+// Add test function to window for debugging
+window.testSearch = testSearchFunctionality;
+

@@ -56,8 +56,14 @@
     }
   </script>
 
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#FF6F61" />
+  <meta name="theme-color" content="#2C2C2C" />
 </head>
 <body class="min-h-screen bg-slate-100 dark:bg-slate-800 flex flex-col">
   <!-- Skip link for keyboard users -->
@@ -65,17 +71,29 @@
   
   <!-- PHONE MOCKUP -->
   <!-- <div class="phone-mock transition-all duration-500 ease-in-out"> -->
-    <!-- The "screen-content" is now split into distinct header, main, and nav -->
-    <header
-      class="p-4 flex justify-between items-center flex-shrink-0 animate__animated animate__fadeInDown"
+    <!-- The "screen-content" is now split into distinct main and nav -->
+    <main
+      id="main-content"
+      class="flex-grow overflow-y-auto animate__animated animate__fadeIn"
       style="
-        background-color: var(--header-bg);
-        color: var(--header-text);
-        border-bottom: 1px solid var(--border-color);
+        background: var(--main-bg);
+        color: var(--main-text);
       "
-      role="banner"
+      role="main"
     >
-      <h1 class="text-xl font-semibold">Smart Shopper SA</h1>
+      <!-- Top bar with logo and theme toggle -->
+      <div class="flex justify-between items-center p-4 pb-2">
+        <!-- Logo that changes based on theme -->
+        <img 
+          src="images/logo dark_gray.png" 
+          alt="PriceComp" 
+          class="h-10 block dark:hidden"
+        />
+        <img 
+          src="images/logo_white_BackgroundRemover.png" 
+          alt="PriceComp" 
+          class="h-10 hidden dark:block"
+        />
 
       <!-- Dark Mode Toggle Button -->
       <button
@@ -95,7 +113,7 @@
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
-            d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
+              d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"
           />
         </svg>
         <!-- Icon visible in dark mode -->
@@ -110,105 +128,166 @@
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
-            d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"
+              d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
           />
         </svg>
       </button>
-    </header>
-
-    <main
-      id="main-content"
-      class="flex-grow overflow-y-auto p-4 animate__animated animate__fadeIn"
-      style="
-        background: var(--main-bg);
-        color: var(--main-text);
-      "
-      role="main"
-    >
+      </div>
       <!-- SEARCH TAB -->
       <div id="search-tab" class="tab-content">
-        <div class="relative mb-6 flex items-center space-x-2">
-          <input
-            id="search-input"
-            type="text"
-            placeholder="Search for groceries..."
-            class="flex-grow px-4 py-3 rounded-full border focus:outline-none focus:ring-2 focus:border-transparent"
-            style="
-              background: var(--input-bg);
-              color: var(--main-text);
-              border-color: var(--border-color);
-            "
-          />
-          <button
-            id="search-button"
-            class="p-3 rounded-full hover:opacity-90 transition flex-shrink-0"
-            style="background: var(--accent); color: var(--accent-text);"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-5 h-5"
+        <div class="px-4">
+          <!-- Search Header with Back Button -->
+          <div class="flex items-center mb-4">
+            <button id="search-back-button" class="p-2 rounded-full hover:opacity-90 transition mr-2" style="color: var(--main-text);">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <h2 class="text-lg font-medium flex-1" style="color: var(--main-text);">Search Products</h2>
+          </div>
+          
+          <div class="relative mb-4 flex items-center space-x-2">
+            <input
+              id="search-input"
+              type="text"
+              placeholder="Search for groceries..."
+              class="flex-grow px-4 py-3 rounded-full border focus:outline-none focus:ring-2 focus:border-transparent text-sm"
+              style="
+                background: var(--input-bg);
+                color: var(--main-text);
+                border-color: var(--border-color);
+              "
+            />
+            <button
+              id="search-button"
+              class="p-3 rounded-full hover:opacity-90 transition flex-shrink-0"
+              style="background: var(--accent); color: var(--accent-text);"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <div id="search-results-area">
-          <h2 class="text-lg font-medium mb-2">Results</h2>
-          <div
-            id="loading-indicator"
-            class="hidden text-center py-4 animate__animated animate__fadeIn"
-            style="opacity: 0.8;"
-          >
-            <svg
-              class="animate-spin h-8 w-8 mx-auto"
-              style="color: var(--accent);"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
                 stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <p class="mt-2 text-sm">Searching...</p>
+                class="w-5 h-5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                />
+              </svg>
+            </button>
           </div>
-          <div
-            id="no-results-message"
-            class="hidden text-center py-4"
-            style="opacity: 0.8;"
-          >
-            <p>No products found matching your search.</p>
-          </div>
-          <div id="search-results-container" class="space-y-3">
-            <!-- Search results injected by JS -->
+
+          <div id="search-results-area">
+            <h2 class="text-sm font-medium mb-3">Results</h2>
+            <div
+              id="loading-indicator"
+              class="hidden text-center py-4 animate__animated animate__fadeIn"
+              style="opacity: 0.8;"
+            >
+              <svg
+                class="animate-spin h-8 w-8 mx-auto"
+                style="color: var(--accent);"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <p class="mt-2 text-sm">Searching...</p>
+            </div>
+            <div
+              id="no-results-message"
+              class="hidden text-center py-4"
+              style="opacity: 0.8;"
+            >
+              <p class="text-sm">No products found matching your search.</p>
+            </div>
+            <!-- Mock search results preview -->
+            <div id="mock-search-results" class="space-y-1 opacity-40">
+              <div class="p-3 rounded-lg border" style="background: var(--card-bg); border-color: var(--border-color);">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <h3 class="text-sm font-medium" style="color: var(--card-text);">Whole Milk 2L</h3>
+                    <p class="text-xs opacity-75" style="color: var(--card-text);">Pick n Pay</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm font-medium" style="color: var(--card-text);">R 29.99</p>
+                    <button class="text-xs px-2 py-1 rounded-full mt-1" style="background: var(--accent); color: var(--accent-text);">Add to List</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="p-3 rounded-lg border" style="background: var(--card-bg); border-color: var(--border-color);">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <h3 class="text-sm font-medium" style="color: var(--card-text);">Full Cream Milk 2L</h3>
+                    <p class="text-xs opacity-75" style="color: var(--card-text);">Woolworths</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm font-medium" style="color: var(--card-text);">R 32.50</p>
+                    <button class="text-xs px-2 py-1 rounded-full mt-1" style="background: var(--accent); color: var(--accent-text);">Add to List</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="p-3 rounded-lg border" style="background: var(--card-bg); border-color: var(--border-color);">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <h3 class="text-sm font-medium" style="color: var(--card-text);">Low Fat Milk 2L</h3>
+                    <p class="text-xs opacity-75" style="color: var(--card-text);">Checkers</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm font-medium" style="color: var(--card-text);">R 28.99</p>
+                    <button class="text-xs px-2 py-1 rounded-full mt-1" style="background: var(--accent); color: var(--accent-text);">Add to List</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="p-3 rounded-lg border" style="background: var(--card-bg); border-color: var(--border-color);">
+                <div class="flex items-center justify-between">
+                  <div class="flex-1">
+                    <h3 class="text-sm font-medium" style="color: var(--card-text);">Organic Milk 1L</h3>
+                    <p class="text-xs opacity-75" style="color: var(--card-text);">Woolworths</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm font-medium" style="color: var(--card-text);">R 24.99</p>
+                    <button class="text-xs px-2 py-1 rounded-full mt-1" style="background: var(--accent); color: var(--accent-text);">Add to List</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="text-center py-4 opacity-60">
+                <p class="text-xs" style="color: var(--main-text);">Start typing to search for products...</p>
+              </div>
+            </div>
+            
+            <div id="search-results-container" class="space-y-1">
+              <!-- Search results injected by JS -->
+            </div>
           </div>
         </div>
       </div>
 
       <!-- List Tab -->
       <div id="list-tab" class="tab-content">
-        <div class="p-4">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold">My Shopping Lists</h2>
+        <div class="px-4">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-medium">My Shopping Lists</h2>
             <button
               id="new-list-button"
               class="p-2 rounded-full hover:opacity-90 transition flex-shrink-0"
@@ -221,7 +300,7 @@
             </button>
           </div>
           <!-- Container for dynamically generated lists -->
-          <div id="lists-container" class="space-y-3">
+          <div id="lists-container" class="space-y-1">
             <!-- Lists will be injected here by JavaScript -->
             <!-- Example structure (will be generated):
             <div data-list-id="..." class="list-item ..."> ... </div>
@@ -233,14 +312,14 @@
       <!-- List Items View (Initially Hidden) -->
       <div id="list-items-view" class="hidden animate__animated" style="background: var(--main-bg); color: var(--main-text);">
         <!-- Header for List Items View -->
-        <div class="p-4 flex items-center border-b flex-shrink-0" style="border-color: var(--border-color); background: var(--header-bg); color: var(--header-text); position: sticky; top: 0; z-index: 50;">
-          <button id="back-to-lists-button" class="p-2 rounded-full hover:opacity-90 transition" style="color: var(--header-text);">
+        <div class="p-4 flex items-center border-b flex-shrink-0" style="border-color: var(--border-color); background: var(--main-bg); color: var(--main-text); position: sticky; top: 0; z-index: 50;">
+          <button id="back-to-lists-button" class="p-2 rounded-full hover:opacity-90 transition" style="color: var(--main-text);">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
           <!-- This element is shown when not in add mode -->
-          <h1 id="list-items-title" class="flex-1 truncate font-medium text-lg ml-1"></h1>
+          <h1 id="list-items-title" class="flex-1 truncate font-medium text-sm ml-1"></h1>
           
           <!-- This element is shown when in add mode -->
           <div class="header-search-box">
@@ -250,27 +329,42 @@
               </svg>
             </div>
             <input type="text" id="add-item-input" placeholder="Add new item" class="w-full rounded-full focus:outline-none focus:ring-2 focus:border-transparent">
+            <button id="voice-dictate-button" class="voice-dictate-btn p-2 rounded-full transition-all duration-200 hover:scale-110 active:scale-95" title="Voice Dictation - Say 'next' to separate items, 'done' to stop">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+              </svg>
+            </button>
+            <!-- Voice dictation status indicator -->
+            <div id="voice-status-indicator" class="voice-status-indicator hidden">
+              <div class="voice-status-text">Listening...</div>
+              <div class="voice-status-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
           </div>
           
           <!-- These buttons toggle based on mode -->
-          <button id="delete-list-button" class="ml-auto p-2 text-red-500 hover:text-red-600 transition" title="Delete List">
+          <button id="compare-prices-button" class="ml-auto p-2 rounded-full transition-all duration-200 hover:scale-110 active:scale-95 shadow-md hover:shadow-lg" style="background: var(--accent); color: var(--accent-text);" title="Compare Prices">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+            </svg>
+          </button>
+          <button id="delete-list-button" class="ml-2 p-2 text-red-500 hover:text-red-600 transition" title="Delete List">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
               <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
             </svg>
           </button>
-          <button id="add-item-manual-btn" class="ml-2 p-2 rounded-full transition-all duration-200 hover:scale-110 active:scale-95 shadow-md hover:shadow-lg" style="background: #ffc107; color: black;" title="Add Item to List">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-          </button>
+
         </div>
 
         <!-- 1) Empty-list state -->
         <div id="empty-list-view" class="flex flex-col items-center justify-center h-full">
           <img src="images/avocado.svg" alt="" class="w-48 mb-4 animate__animated animate__fadeIn">
-          <h2 class="text-xl font-semibold text-white animate__animated animate__fadeIn">Let's plan your shopping!</h2>
-          <p class="opacity-70 mb-8 text-white animate__animated animate__fadeIn">Tap the plus button to start adding products</p>
-          <button id="start-adding-button" class="px-6 py-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all shadow-lg animate__animated animate__fadeIn">
+          <h2 class="text-sm font-medium animate__animated animate__fadeIn" style="color: var(--main-text);">Let's plan your shopping!</h2>
+          <p class="opacity-70 mb-8 animate__animated animate__fadeIn" style="color: var(--main-text);">Tap the plus button to start adding products</p>
+          <button id="start-adding-button" class="px-6 py-3 rounded-full transition-all shadow-lg animate__animated animate__fadeIn" style="background: var(--accent); color: var(--accent-text);">
             <span class="flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -282,11 +376,21 @@
 
         <!-- 2) Add-items state (hidden by default) -->
         <div id="add-items-view" class="hidden">
+          <!-- Voice dictation instruction banner -->
+                      <div id="voice-instruction-banner" class="voice-instruction-banner">
+              <div class="voice-instruction-content">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                </svg>
+                <span>Tap the microphone button and say "next" between items. Say "done" when finished.</span>
+              </div>
+            </div>
+          
           <!-- Tabs & suggestions (no margin-top) - Only visible in add mode -->
-          <div id="popular-items-container" class="px-0 flex-1 overflow-auto" style="background: #1a1a1a; margin-top:0; padding-top:0;">
-            <div class="flex" id="item-tabs" style="position: sticky; top: 0; z-index: 10; background: #1a1a1a;">
-              <button class="flex-1 py-2 px-4 text-center border-b-2 border-yellow-400 font-medium text-white active" data-tab="popular">Popular</button>
-              <button class="flex-1 py-2 px-4 text-center opacity-60 text-white" data-tab="recent">Recent</button>
+          <div id="popular-items-container" class="px-0 flex-1 overflow-auto" style="background: var(--main-bg); margin-top:0; padding-top:0;">
+            <div class="flex" id="item-tabs" style="position: sticky; top: 0; z-index: 10; background: var(--card-bg);">
+              <button class="flex-1 py-2 px-4 text-center border-b-2 font-medium active" style="border-color: var(--accent); color: var(--card-text);" data-tab="popular">Popular</button>
+              <button class="flex-1 py-2 px-4 text-center opacity-60" style="color: var(--card-text);" data-tab="recent">Recent</button>
             </div>
             <div id="popular-items-content" class="space-y-0 overflow-auto pb-16">
               <!-- Popular items will be dynamically added here by JavaScript -->
@@ -298,7 +402,7 @@
           <!-- DONE button - Fixed position -->
           <div class="fixed bottom-6 right-6 z-50">
             <button id="done-adding-button" 
-                    class="px-6 py-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all shadow-lg flex items-center">
+                    class="px-6 py-3 rounded-full transition-all shadow-lg flex items-center" style="background: var(--accent); color: var(--accent-text);">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
@@ -307,78 +411,98 @@
           </div>
         </div>
         <!-- Floating add button for non-empty list, hidden in add mode -->
-        <button id="add-more-items-fab" class="hidden fixed bottom-6 right-6 z-20 bg-yellow-400 text-black rounded-full w-16 h-16 flex items-center justify-center text-3xl shadow-xl transition-transform duration-200 hover:scale-110" title="Add more items">
+        <button id="add-more-items-fab" class="hidden fixed bottom-6 right-6 z-20 rounded-full w-16 h-16 flex items-center justify-center text-3xl shadow-xl transition-transform duration-200 hover:scale-110" style="background: var(--accent); color: var(--accent-text);" title="Add more items">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         </button>
         
         <!-- Container for items in the list -->
-        <div id="list-items-container" class="space-y-3 overflow-y-auto flex-grow">
+        <div id="list-items-container" class="space-y-1 overflow-y-auto flex-grow">
           <!-- Items will be injected here -->
         </div>
+
+        <!-- Price Comparison Modal -->
+        <div id="price-comparison-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
+          <div class="w-full bg-white dark:bg-gray-800 rounded-t-3xl p-4 max-h-[80vh] overflow-y-auto">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold" style="color: var(--main-text);">Price Comparison</h3>
+              <button id="close-comparison-modal" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6" style="color: var(--main-text);">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Loading state -->
+            <div id="comparison-loading" class="hidden text-center py-8">
+              <svg class="animate-spin h-8 w-8 mx-auto mb-4" style="color: var(--accent);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p class="text-sm" style="color: var(--main-text);">Comparing prices across stores...</p>
+            </div>
+
+            <!-- Results container -->
+            <div id="comparison-results" class="space-y-2">
+              <!-- Store comparison cards will be injected here -->
+            </div>
+          </div>
+        </div>
       </div>
+
+
 
       <!-- CARDS TAB -->
       <div id="cards-tab" class="tab-content">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-lg font-semibold">My Loyalty Cards</h2>
-          <button id="add-card-button" class="p-2 rounded-full bg-yellow-400 text-black shadow hover:scale-110 transition" title="Add New Card">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"/>
-            </svg>
-          </button>
-        </div>
-        <div id="cards-container" class="space-y-3">
-          <!-- Loyalty cards will be rendered here -->
+        <div class="px-4">
+          <!-- Cards Header with Back Button -->
+          <div class="flex items-center mb-4">
+            <button id="cards-back-button" class="p-2 rounded-full hover:opacity-90 transition mr-2" style="color: var(--main-text);">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <h2 class="text-lg font-medium flex-1" style="color: var(--main-text);">My Loyalty Cards</h2>
+          </div>
+          
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-medium">My Loyalty Cards</h2>
+            <button id="add-card-button" class="p-2 rounded-full hover:opacity-90 transition flex-shrink-0" style="background: var(--accent); color: var(--accent-text);" title="Add New Card">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"/>
+              </svg>
+            </button>
+          </div>
+          <div id="cards-container" class="space-y-1">
+            <!-- Loyalty cards will be rendered here -->
+          </div>
         </div>
       </div>
 
-      <!-- SETTINGS TAB -->
+      <!-- MANAGE TAB -->
       <div id="settings-tab" class="tab-content">
-        <h2 class="text-lg font-semibold mb-4">Settings</h2>
 
-        <!-- Authentication Section -->
-        <div id="auth-container" class="mb-6 p-4 rounded-lg shadow-sm border" style="background: var(--card-bg); color: var(--card-text); border-color: var(--border-color);">
-          
-          <!-- Login/Signup Form (Initially Visible) -->
-          <div id="auth-forms">
-            <h3 class="text-md font-semibold mb-3">Login or Create Account</h3>
-            <form id="login-form" class="mb-4">
-              <input type="email" id="login-email" placeholder="Email" required class="w-full p-2 mb-2 border rounded" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
-              <input type="password" id="login-password" placeholder="Password" required class="w-full p-2 mb-2 border rounded" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
-              <button type="submit" class="w-full py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Login</button>
-            </form>
-            <p class="text-center text-sm mb-2">or</p>
-            <form id="signup-form">
-               <input type="email" id="signup-email" placeholder="Email" required class="w-full p-2 mb-2 border rounded" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
-               <input type="password" id="signup-password" placeholder="Password (min. 6 characters)" required class="w-full p-2 mb-2 border rounded" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
-               <button type="submit" class="w-full py-2 rounded bg-green-600 text-white hover:bg-green-700">Sign Up</button>
-            </form>
-            <p id="auth-error" class="text-red-500 text-sm mt-2 hidden"></p> <!-- For displaying auth errors -->
-          </div>
-
-          <!-- User Info & Logout (Initially Hidden) -->
-          <div id="user-info" class="hidden">
-             <h3 class="text-md font-semibold mb-2">Account</h3>
-             <p class="mb-3">Logged in as: <span id="user-email" class="font-medium"></span></p>
-             <!-- Existing Logout Button will be handled by JS -->
+        <!-- Settings Header with Back Button -->
+        <div class="px-4">
+          <div class="flex items-center mb-4">
+            <button id="settings-back-button" class="p-2 rounded-full hover:opacity-90 transition mr-2" style="color: var(--main-text);">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <h2 class="text-lg font-medium flex-1" style="color: var(--main-text);">Settings</h2>
           </div>
         </div>
-        <!-- End Authentication Section -->
 
-        <div class="space-y-3">
-          <div
-            data-setting-name="Profile"
-            class="setting-item rounded-lg shadow-sm border cursor-pointer hover:scale-105 transition transform animate__animated animate__fadeInUp p-4"
-            style="
-              background: var(--card-bg);
-              color: var(--card-text);
-              border-color: var(--border-color);
-            "
-          >
-            <div class="flex justify-between items-center">
-              <p>Profile</p>
+        <!-- Authentication Section -->
+        <div class="px-4">
+          <div id="auth-container" class="mb-4 p-3 rounded-lg border" style="background: var(--card-bg); color: var(--card-text); border-color: var(--border-color);">
+          
+          <!-- Login Form (Initially Visible) -->
+          <div id="login-section">
+            <div class="flex items-center space-x-3 mb-3">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -386,6 +510,113 @@
                 stroke-width="1.5"
                 stroke="currentColor"
                 class="w-5 h-5 text-slate-400"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                />
+              </svg>
+              <h3 class="text-sm font-medium">Login</h3>
+            </div>
+            <form id="login-form" class="mb-3">
+              <input type="email" id="login-email" placeholder="Email" required class="w-full p-2 mb-2 border rounded text-sm" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
+              <input type="password" id="login-password" placeholder="Password" required class="w-full p-2 mb-2 border rounded text-sm" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
+              <button type="submit" class="w-full py-2 rounded bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium">Login</button>
+            </form>
+            <p id="auth-error" class="text-red-500 text-xs mt-2 hidden"></p> <!-- For displaying auth errors -->
+            <button id="show-signup" class="w-full py-2 text-sm text-blue-600 hover:text-blue-700 transition">Don't have an account? Sign up</button>
+          </div>
+
+          <!-- Signup Form (Initially Hidden) -->
+          <div id="signup-section" class="hidden">
+            <div class="flex items-center space-x-3 mb-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-5 h-5 text-slate-400"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                />
+              </svg>
+              <h3 class="text-sm font-medium">Create Account</h3>
+            </div>
+            <form id="signup-form">
+               <input type="email" id="signup-email" placeholder="Email" required class="w-full p-2 mb-2 border rounded text-sm" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
+               <input type="password" id="signup-password" placeholder="Password (min. 6 characters)" required class="w-full p-2 mb-2 border rounded text-sm" style="background: var(--input-bg); color: var(--input-text); border-color: var(--border-color);">
+               <button type="submit" class="w-full py-2 rounded bg-green-600 text-white hover:bg-green-700 text-sm font-medium">Sign Up</button>
+            </form>
+            <p id="signup-error" class="text-red-500 text-xs mt-2 hidden"></p> <!-- For displaying signup errors -->
+            <button id="show-login" class="w-full py-2 text-sm text-blue-600 hover:text-blue-700 transition">Have an account? Login</button>
+          </div>
+
+          <!-- User Info & Logout (Initially Hidden) -->
+          <div id="user-info" class="hidden">
+             <div class="flex items-center space-x-3 mb-2">
+               <svg
+                 xmlns="http://www.w3.org/2000/svg"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke-width="1.5"
+                 stroke="currentColor"
+                 class="w-5 h-5 text-slate-400"
+               >
+                 <path
+                   stroke-linecap="round"
+                   stroke-linejoin="round"
+                   d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                 />
+               </svg>
+               <h3 class="text-sm font-medium">Account</h3>
+             </div>
+             <p class="text-sm mb-2">Logged in as: <span id="user-email" class="font-medium"></span></p>
+             <!-- Existing Logout Button will be handled by JS -->
+          </div>
+          </div>
+        </div>
+        <!-- End Authentication Section -->
+
+        <div id="authenticated-settings" class="px-4 space-y-1 hidden">
+          <div
+            data-setting-name="Profile"
+            class="setting-item rounded-lg border cursor-pointer hover:bg-opacity-80 transition transform animate__animated animate__fadeInUp p-3"
+            style="
+              background: var(--card-bg);
+              color: var(--card-text);
+              border-color: var(--border-color);
+            "
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-5 h-5 text-slate-400"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                  />
+                </svg>
+                <span class="text-sm font-medium">Profile</span>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-4 h-4 text-slate-400"
               >
                 <path
                   stroke-linecap="round"
@@ -397,15 +628,56 @@
           </div>
           <div
             data-setting-name="Notifications"
-            class="setting-item rounded-lg shadow-sm border cursor-pointer hover:scale-105 transition transform animate__animated animate__fadeInUp p-4"
+            class="setting-item rounded-lg border cursor-pointer hover:bg-opacity-80 transition transform animate__animated animate__fadeInUp p-3"
             style="
               background: var(--card-bg);
               color: var(--card-text);
               border-color: var(--border-color);
             "
           >
-            <div class="flex justify-between items-center">
-              <p>Notifications</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-5 h-5 text-slate-400"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                  />
+                </svg>
+                <span class="text-sm font-medium">Notifications</span>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-4 h-4 text-slate-400"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                />
+              </svg>
+            </div>
+          </div>
+          <div
+            class="rounded-lg border flex items-center justify-between animate__animated animate__fadeInUp p-3"
+            style="
+              background: var(--card-bg);
+              color: var(--card-text);
+              border-color: var(--border-color);
+            "
+          >
+            <div class="flex items-center space-x-3">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -417,20 +689,11 @@
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  d="m8.25 4.5 7.5 7.5-7.5 7.5"
+                  d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
                 />
               </svg>
+              <span class="text-sm font-medium">Dark Mode</span>
             </div>
-          </div>
-          <div
-            class="rounded-lg shadow-sm border flex justify-between items-center animate__animated animate__fadeInUp p-4"
-            style="
-              background: var(--card-bg);
-              color: var(--card-text);
-              border-color: var(--border-color);
-            "
-          >
-            <p>Dark Mode</p>
             <label for="dark-mode-checkbox" class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" id="dark-mode-checkbox" class="sr-only peer" />
               <div
@@ -441,22 +704,38 @@
           </div>
           <div
             data-setting-name="About"
-            class="setting-item rounded-lg shadow-sm border cursor-pointer hover:scale-105 transition transform animate__animated animate__fadeInUp p-4"
+            class="setting-item rounded-lg border cursor-pointer hover:bg-opacity-80 transition transform animate__animated animate__fadeInUp p-3"
             style="
               background: var(--card-bg);
               color: var(--card-text);
               border-color: var(--border-color);
             "
           >
-            <div class="flex justify-between items-center">
-              <p>About</p>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                  class="w-5 h-5 text-slate-400"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                  />
+                </svg>
+                <span class="text-sm font-medium">About</span>
+              </div>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke-width="1.5"
                 stroke="currentColor"
-                class="w-5 h-5 text-slate-400"
+                class="w-4 h-4 text-slate-400"
               >
                 <path
                   stroke-linecap="round"
@@ -478,6 +757,7 @@
             Log Out
           </button>
         </div>
+        </div>
       </div>
     </main>
 
@@ -489,27 +769,6 @@
       "
       role="navigation"
     >
-      <button
-        id="nav-search"
-        data-tab="search-tab"
-        class="nav-button flex flex-col items-center justify-center w-1/4 p-2 rounded-lg transition hover:opacity-80"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-          class="w-6 h-6"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-          />
-        </svg>
-        <span class="text-xs mt-1">Search</span>
-      </button>
       <button
         id="nav-list"
         data-tab="list-tab"
@@ -553,6 +812,28 @@
         <span class="text-xs mt-1">Cards</span>
       </button>
       <button
+        id="nav-search"
+        data-tab="search-tab"
+        class="nav-button flex flex-col items-center justify-center w-1/4 p-2 rounded-lg transition hover:opacity-80"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="w-6 h-6"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+          />
+        </svg>
+        <span class="text-xs mt-1">Search</span>
+      </button>
+
+      <button
         id="nav-settings"
         data-tab="settings-tab"
         class="nav-button flex flex-col items-center justify-center w-1/4 p-2 rounded-lg transition hover:opacity-80"
@@ -568,15 +849,10 @@
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
-            d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.004.827c-.293.24-.438.613-.43.992a6.759 6.759 0 0 1 0 1.257c-.008.379.137.752.43.991l1.005.828c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.759 6.759 0 0 1 0-1.257c.008-.379-.137-.752-.43-.99l-1.004-.828a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"
-          />
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+            d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
           />
         </svg>
-        <span class="text-xs mt-1">Settings</span>
+        <span class="text-xs mt-1">Manage</span>
       </button>
     </nav>
   <!-- </div> -->
@@ -613,7 +889,7 @@
     <div id="modal-content" class="w-full animate__animated fixed bottom-0 left-0 right-0">
       <div class="p-4">
         <div class="flex justify-between items-center mb-2">
-          <h3 id="modal-title" class="text-xl font-semibold text-white">Create a new list</h3>
+          <h3 id="modal-title" class="text-sm font-medium text-white">Create a new list</h3>
           <button id="modal-close" class="text-white opacity-70 hover:opacity-100">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -657,14 +933,14 @@
         <p id="scanner-status" class="text-center text-sm mt-2 text-white drop-shadow"></p>
       </div>
       <form id="add-card-form" class="space-y-3 w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 mt-4">
-        <h3 class="text-lg font-semibold mb-2">Add Loyalty Card</h3>
+        <h3 class="text-sm font-medium mb-2">Add Loyalty Card</h3>
         <div>
           <label class="block mb-1">Retailer</label>
-          <input type="text" id="card-retailer" class="w-full px-3 py-2 rounded border" required>
+          <input type="text" id="card-retailer" class="w-full px-4 py-2 rounded border" required>
         </div>
         <div>
           <label class="block mb-1">Card Number</label>
-          <input type="text" id="card-number" class="w-full px-3 py-2 rounded border" required placeholder="Enter card number or use scanner">
+          <input type="text" id="card-number" class="w-full px-4 py-2 rounded border" required placeholder="Enter card number or use scanner">
           <p class="text-xs mt-1 text-gray-500 dark:text-gray-400">Scan your barcode or enter the number manually</p>
         </div>
         <div class="flex justify-end space-x-2">
@@ -680,7 +956,7 @@
     <div class="absolute inset-0 bg-black opacity-50" id="list-selection-overlay"></div>
     <div class="relative z-10 max-w-md mx-auto mt-20 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 animate__animated animate__fadeInDown">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold" id="list-selection-title">Add to list</h3>
+        <h3 class="text-sm font-medium" id="list-selection-title">Add to list</h3>
         <button id="list-selection-close" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
