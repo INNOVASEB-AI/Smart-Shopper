@@ -125,4 +125,4 @@ The application uses web scraping to fetch prices from retailers. Please be mind
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details. # Updated Sun Aug 17 22:35:03 SAST 2025
