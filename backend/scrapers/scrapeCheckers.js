@@ -78,3 +78,4 @@ async function scrapeCheckers(query) {
 }
 
 module.exports = scrapeCheckers;
+module.exports.scrapeCheckers = scrapeCheckers;

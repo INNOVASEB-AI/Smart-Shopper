@@ -14,6 +14,7 @@ const {
   scrapeWoolworths,
   scrapePriceCheck,
 } = require('./scrapers');
+const { logger, createScraperLogger } = require('./logger');
 
 // Initialize Firebase Admin with service account credentials from GitHub secret
 try {
@@ -104,29 +105,19 @@ async function crawlAllRetailers() {
     logger.info(`Starting crawl for query: "${searchQuery}"`);
     
     for (const {retailer, func} of retailerScrapers) {
+      const retailerLogger = createScraperLogger(retailer);
       try {
         logger.info(`Scraping ${retailer} for "${searchQuery}"...`);
-        const results = await func(searchQuery, retailerLogger);
-        
-        logger.info(`Scraped ${results.length} items from ${retailer} for "${searchQuery}"`);
-        
-        if (results.length === 0) {
+        const value = await func(searchQuery);
+        const scrapedItems = Array.isArray(value) ? value : (value && value.results ? value.results : []);
+        logger.info(`Scraped ${scrapedItems.length} items from ${retailer} for "${searchQuery}"`);
+        if (scrapedItems.length === 0) {
           logger.warn(`No results from ${retailer} for "${searchQuery}"`);
-          continue;
         }
-        
-        // Normalize and save to Firestore
-        const normalizedResults = results.map(r => normalizeProduct(r, retailer));
-        const validResults = normalizedResults.filter(r => r.name && r.price && r.url);
-        
-        logger.info(`Valid items after normalization: ${validResults.length}`);
-        
-        if (validResults.length > 0) {
-          await saveToFirestore(validResults);
-          logger.info(`Successfully saved ${validResults.length} items from ${retailer} to Firestore!`);
-        }
+        results.push({ status: 'fulfilled', retailer, value });
       } catch (error) {
         logger.error(`Error scraping ${retailer} for "${searchQuery}": ${error.message}`);
+        results.push({ status: 'rejected', retailer, reason: error });
       }
       
       // Delay between retailers
@@ -143,12 +134,13 @@ async function crawlAllRetailers() {
   results.forEach(({status, retailer, value, reason}) => {
     console.log(`Results for ${retailer}: ${status}`);
     
-    if (status === "fulfilled" && value && !value.error && value.results) {
-      const resultCount = value.results?.length || 0;
+    if (status === "fulfilled") {
+      const arr = Array.isArray(value) ? value : (value && value.results ? value.results : []);
+      const resultCount = arr.length;
       console.log(`  Found ${resultCount} items from ${retailer}`);
       
       if (resultCount > 0) {
-        const transformedResults = value.results.map(item => ({
+        const transformedResults = arr.map(item => ({
           url: item.url || "",
           name: item.name || item.title || "",
           price: parseFloat(item.price) || 0,
