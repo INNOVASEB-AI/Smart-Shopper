@@ -27,9 +27,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Security: Set auth persistence to SESSION to minimize exposure time
-// This makes users need to re-login after closing the browser
-auth.setPersistence('SESSION');
+// Use local persistence in auth flows (set in app.js)
 
 // Also export the Firebase auth methods to simplify imports in app.js
 import { 
@@ -38,7 +36,8 @@ import {
   signOut, 
   onAuthStateChanged,
   setPersistence,
-  browserSessionPersistence
+  browserSessionPersistence,
+  browserLocalPersistence
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 export { 
@@ -50,5 +49,6 @@ export {
   signOut, 
   onAuthStateChanged,
   setPersistence,
-  browserSessionPersistence
+  browserSessionPersistence,
+  browserLocalPersistence
 }; 

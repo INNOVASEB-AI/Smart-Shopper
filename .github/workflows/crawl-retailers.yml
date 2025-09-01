@@ -27,7 +27,7 @@ jobs:
         run: |
           cd backend
           npm install
-          # Install Puppeteer dependencies
+          # Install Puppeteer dependencies (kept for compatibility)
           sudo apt-get update
           sudo apt-get install -y wget gnupg
           wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
@@ -46,20 +46,32 @@ jobs:
           pip install -r backend/scrapy_scrapers/requirements.txt
           pip install crawl4ai
           pip install aiohttp aiofiles
+          # Install Firecrawl SDK
+          pip install firecrawl-py
           
       - name: Create service account file
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > sa-key.json
         working-directory: backend
         
-      - name: Run crawler
+      - name: Run Firecrawl crawler for all retailers
         run: |
-          cd backend
-          node crawl-github.js
+          cd backend/scrapers/crawl4ai_scrapers
+          # Create data directory if it doesn't exist
+          mkdir -p ./data
+          # Run Firecrawl for all retailers
+          python3 run_firecrawl_all.py --limit 200 --db-path ./data/products.db --output ./firecrawl_results.json
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ./sa-key.json
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
-          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
+          GOOGLE_APPLICATION_CREDENTIALS: ../../sa-key.json
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          FIREBASE_PUSH: 'true'
+          
+      - name: Upload results artifact
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: firecrawl-results
+          path: backend/scrapers/crawl4ai_scrapers/firecrawl_results.json
           
       - name: Clean up credentials
         if: always()

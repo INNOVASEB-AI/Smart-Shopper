@@ -18,7 +18,7 @@ import argparse
 import signal
 import traceback
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple, Set, Callable
+from typing import Dict, List, Any, Optional, Tuple, Set, Callable, Iterable
 from pathlib import Path
 import threading
 import queue
@@ -35,6 +35,88 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("scheduler")
+
+try:
+    # Optional Firestore push
+    import firebase_admin
+    from firebase_admin import credentials, firestore as fb_firestore
+    FIREBASE_AVAILABLE = True
+except Exception:
+    FIREBASE_AVAILABLE = False
+
+# Seed categories/keywords for prioritized coverage
+HOUSEHOLD_SEED_KEYWORDS: list[str] = [
+    # Staples & Basics
+    "bread","milk","eggs","butter","cheese","yogurt","rice","flour","sugar","salt","oil",
+    "olive oil","vegetable oil","canola oil","coconut oil",
+    
+    # Pantry Essentials
+    "pasta","beans","lentils","chickpeas","canned tomatoes","tomato paste","canned corn",
+    "tea","coffee","cereal","oats","quinoa","couscous","noodles","spaghetti","macaroni",
+    "canned tuna","canned salmon","peanut butter","jam","honey","maple syrup","vanilla",
+    "baking powder","baking soda","yeast","vinegar","soy sauce","worcestershire sauce",
+    
+    # Household Essentials
+    "toilet paper","paper towels","tissues","dishwashing liquid","laundry detergent",
+    "fabric softener","bleach","soap","hand soap","body wash","shampoo","conditioner",
+    "toothpaste","toothbrush","deodorant","toilet cleaner","floor cleaner","window cleaner",
+    
+    # Baby & Child Care
+    "diapers","wipes","baby formula","baby food","nappy cream","baby shampoo",
+    
+    # Fresh Produce (popular items)
+    "apples","bananas","oranges","lemons","limes","grapes","strawberries","blueberries",
+    "potatoes","onions","tomatoes","carrots","broccoli","spinach","lettuce","cucumber",
+    "peppers","garlic","ginger","avocado","mushrooms","cabbage","cauliflower",
+    
+    # Meat & Protein
+    "chicken","beef","pork","lamb","mince","chicken breast","chicken thighs","bacon",
+    "sausages","fish","salmon","tuna","prawns","eggs","tofu",
+    
+    # Dairy & Alternatives
+    "milk","full cream milk","skim milk","almond milk","soy milk","oat milk",
+    "butter","margarine","cream","sour cream","cottage cheese","cheddar cheese",
+    "mozzarella","parmesan","greek yogurt","plain yogurt",
+    
+    # Frozen Foods
+    "frozen vegetables","frozen fruit","ice cream","frozen pizza","frozen chips",
+    "frozen fish","frozen chicken","frozen berries",
+    
+    # Snacks & Treats
+    "biscuits","cookies","crackers","chips","nuts","chocolate","candy","popcorn",
+    "pretzels","granola bars","fruit snacks",
+    
+    # Beverages
+    "water","sparkling water","juice","orange juice","apple juice","soft drinks",
+    "energy drinks","sports drinks","wine","beer","spirits",
+    
+    # Health & Wellness
+    "vitamins","paracetamol","ibuprofen","bandages","antiseptic","sunscreen",
+    "first aid","thermometer","hand sanitizer",
+    
+    # Pet Care
+    "dog food","cat food","pet treats","cat litter","dog toys","pet shampoo",
+    
+    # Cleaning Supplies
+    "all purpose cleaner","disinfectant","mop","broom","vacuum bags","sponges",
+    "rubber gloves","bin bags","aluminum foil","cling wrap","garbage bags",
+    
+    # Kitchen Essentials
+    "plates","cups","cutlery","pots","pans","kitchen towels","oven mitts",
+    "cutting board","knives","mixing bowls",
+    
+    # Personal Care
+    "makeup","skincare","moisturizer","face wash","razor","shaving cream",
+    "perfume","cologne","nail polish","hair gel","hair spray",
+    
+    # Seasonal & Special
+    "braai meat","braai sauce","marinade","spices","herbs","christmas decorations",
+    "birthday cards","gift wrap","candles","matches","lighters"
+]
+
+def iter_seed_queries() -> Iterable[str]:
+    for q in HOUSEHOLD_SEED_KEYWORDS:
+        yield q
 
 class CrawlJob:
     """
@@ -126,13 +208,49 @@ class CrawlJob:
                 concurrency=self.concurrency
             )
             
-            # Run the crawler
-            summary = await crawler.run()
+            # 1) Priority pass: seed queries if crawler supports query-based mode
+            # For BaseCrawler descendants we rely on sitemap; for specific ones that expose a 'run_queries'
+            # method we try to call it to deepen coverage for household items first.
+            if hasattr(crawler, "run_queries"):
+                try:
+                    await crawler.run_queries(list(iter_seed_queries()))
+                except Exception as _seed_err:
+                    logger.warning(f"Seed query crawl failed for {self.retailer_name}: {_seed_err}")
+
+            # 2) Full sitemap crawl
+            summary = await crawler.crawl()
             
             # Store crawled data in database
             if hasattr(crawler, "run_dir") and os.path.exists(crawler.run_dir):
                 crawled_products = self._load_crawled_products(crawler.run_dir)
                 success_count, failure_count = db.bulk_upsert_products(crawled_products)
+                
+                # Optional: also push to Firestore if enabled
+                if os.getenv('FIREBASE_PUSH') == 'true' and FIREBASE_AVAILABLE:
+                    try:
+                        if not firebase_admin._apps:
+                            # Use default credentials or GOOGLE_APPLICATION_CREDENTIALS
+                            firebase_admin.initialize_app()
+                        fdb = fb_firestore.client()
+                        batch = fdb.batch()
+                        col = fdb.collection('prices')
+                        pushed = 0
+                        for p in crawled_products[:500]:
+                            doc_ref = col.document()
+                            batch.set(doc_ref, {
+                                'name': p.get('title') or p.get('name',''),
+                                'price': (p.get('price',{}) or {}).get('current') if isinstance(p.get('price'), dict) else p.get('price'),
+                                'store': p.get('retailer', self.retailer_name),
+                                'url': p.get('url',''),
+                                'updated': fb_firestore.SERVER_TIMESTAMP,
+                            })
+                            pushed += 1
+                            if pushed % 450 == 0:
+                                batch.commit(); batch = fdb.batch()
+                        batch.commit()
+                        logger.info(f"Pushed {pushed} products to Firestore for {self.retailer_name}")
+                    except Exception as firebase_err:
+                        logger.warning(f"Firestore push skipped/failed: {firebase_err}")
                 
                 logger.info(f"Stored {success_count} products from {self.retailer_name} in database")
                 
@@ -502,8 +620,8 @@ def create_default_scheduler(
             # Add job if module/class exists
             scheduler.add_job(
                 retailer_name=retailer["name"],
-                interval_hours=24,  # Daily
-                max_urls=1000,      # Reasonable default
+                interval_hours=6,   # Crawl every 6 hours for fresher prices
+                max_urls=5000,      # Expand coverage significantly
                 concurrency=retailer.get("concurrency", 6),
                 enabled=True
             )

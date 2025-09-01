@@ -14,7 +14,29 @@ const {
   scrapeWoolworths,
   scrapePriceCheck,
 } = require('./scrapers');
-const { logger, createScraperLogger } = require('./logger');
+
+// Safe logger import with fallback for GitHub Actions
+let logger, createScraperLogger;
+try {
+  const loggerModule = require('./logger');
+  logger = loggerModule.logger;
+  createScraperLogger = loggerModule.createScraperLogger;
+} catch (error) {
+  console.warn('Logger module not available, using console fallbacks:', error.message);
+  // Fallback logger for GitHub Actions
+  logger = {
+    info: console.log,
+    warn: console.warn,
+    error: console.error,
+    debug: console.debug
+  };
+  createScraperLogger = (retailer) => ({
+    info: (msg) => console.log(`[${retailer}] ${msg}`),
+    warn: (msg) => console.warn(`[${retailer}] ${msg}`),
+    error: (msg) => console.error(`[${retailer}] ${msg}`),
+    debug: (msg) => console.debug(`[${retailer}] ${msg}`)
+  });
+}
 
 // Initialize Firebase Admin with service account credentials from GitHub secret
 try {

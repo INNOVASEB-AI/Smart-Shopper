@@ -4,44 +4,79 @@
 
 const express = require('express');
 const router = express.Router();
+const config = require('../../config');
 const { 
-  scrapeCheckers, 
-  scrapeShoprite, 
-  scrapePicknPay, 
-  scrapeMakro, 
-  scrapeWoolworths,
-  scrapePriceCheck,
-  // Import new database search functions
+  // Remove live scraping imports - only use database functions
   searchProducts,
   getProductDetails,
   getDatabaseStats
 } = require('../../scrapers');
 
-// Import Scrapy integration
-const {
-  scrapeCheckersScrapy,
-  scrapeShopriteScrappy,
-  scrapePicknPayScrapy
-} = require('../../scrapy_scrapers');
-
 const { logger } = require('../../logger');
+
 // Optional Firestore search
-let firestoreSearchEnabled = process.env.USE_FIREBASE === 'true';
+let firestoreSearchEnabled = config.dataSources.useFirebase;
 let firestore;
 try {
   firestore = require('../../services/firestore');
 } catch (_) {
   firestore = null;
+  logger.warn('Firestore service not available');
 }
 
-// Environment configuration
-const useDatabase = process.env.USE_DATABASE === 'true';
-const databasePath = process.env.DATABASE_PATH || './data/products.db';
-const useScrapy = process.env.USE_SCRAPY === 'true';
+// Environment configuration from config
+const useDatabase = config.dataSources.useDatabase;
+const databasePath = config.dataSources.databasePath;
+
+// Optional: prefer local crawler JSON dataset
+const fs = require('fs');
+const path = require('path');
+const useJson = config.dataSources.useJson;
+let cachedCrawlerData = null;
+
+function loadCrawlerJsonData() {
+  if (cachedCrawlerData) return cachedCrawlerData;
+  try {
+    const dir = path.resolve(__dirname, '..', '..');
+    const files = fs.readdirSync(dir).filter(f => f.startsWith('crawler-data-') && f.endsWith('.json'));
+    const all = [];
+    for (const f of files) {
+      try {
+        const arr = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+        if (Array.isArray(arr)) all.push(...arr);
+      } catch (e) {
+        logger.warn(`Failed to read crawler dataset ${f}: ${e.message}`);
+      }
+    }
+    // Normalize shape
+    cachedCrawlerData = all.map(item => ({
+      id: item.id || `${item.store || item.retailer || 'Unknown'}-${(item.name || '').slice(0,40)}`,
+      name: item.name || '',
+      price: item.price,
+      retailer: item.store || item.retailer || 'Unknown',
+      store: item.store || item.retailer || 'Unknown',
+      url: item.url || ''
+    }));
+    logger.info(`Loaded crawler JSON dataset: ${cachedCrawlerData.length} products`);
+  } catch (e) {
+    logger.warn(`No crawler JSON dataset loaded: ${e.message}`);
+    cachedCrawlerData = [];
+  }
+  return cachedCrawlerData;
+}
+
+function searchCrawlerJson({ query, retailer }) {
+  const data = loadCrawlerJsonData();
+  const q = (query || '').toLowerCase();
+  return data.filter(p => (
+    (!retailer || (p.retailer && p.retailer.toLowerCase() === retailer.toLowerCase())) &&
+    (!q || (p.name && p.name.toLowerCase().includes(q)))
+  ));
+}
 
 /**
  * @route POST /api/search
- * @description Search for products across multiple retailers
+ * @description Search for products across multiple retailers (DATABASE ONLY)
  * @access Public
  */
 router.post('/', async (req, res) => {
@@ -56,103 +91,68 @@ router.post('/', async (req, res) => {
     
     // Prefer Firestore if enabled
     if (firestoreSearchEnabled && firestore && typeof firestore.searchPrices === 'function') {
+      try {
       const products = await firestore.searchPrices({ query, retailer: retailers[0] });
+        logger.info(`Found ${products.length} products from Firestore`);
       return res.json({ query, results: products });
+      } catch (error) {
+        logger.error(`Firestore search failed: ${error.message}`);
+        // Continue to fallback options
+      }
     }
 
     // Use database search if enabled
     if (useDatabase) {
+      try {
       const results = await searchProducts({
         query,
         retailer: retailers.length ? retailers[0] : undefined,
         dbPath: databasePath
       });
       
+        logger.info(`Found ${results.totalProducts || 0} products from database`);
       return res.json(results);
+      } catch (error) {
+        logger.error(`Database search failed: ${error.message}`);
+        // Continue to fallback options
+      }
     }
-    
-    // Otherwise, scrape retailers in real-time with timeouts so slow scrapers don't block the response
-    const withTimeout = (promise, ms, retailerName) => {
-      return Promise.race([
-        promise,
-        new Promise(resolve => setTimeout(() => resolve({ retailer: retailerName, results: [], error: true, message: 'Timed out' }), ms))
-      ]);
-    };
-    const SCRAPER_TIMEOUT_MS = parseInt(process.env.SCRAPER_TIMEOUT_MS || '15000', 10);
 
-    const tasks = [];
-    
-    if (!retailers.length || retailers.includes('checkers')) {
-      tasks.push(withTimeout(
-        (useScrapy 
-          ? scrapeCheckersScrapy(query).then(data => ({ retailer: 'Checkers', ...data }))
-          : scrapeCheckers(query).then(data => ({ retailer: 'Checkers', ...data }))),
-        SCRAPER_TIMEOUT_MS,
-        'Checkers'
-      ));
+    // Use local crawler JSON if enabled
+    if (useJson) {
+      try {
+      const products = searchCrawlerJson({ query });
+        logger.info(`Found ${products.length} products from JSON cache`);
+      return res.json({ query, results: products });
+      } catch (error) {
+        logger.error(`JSON search failed: ${error.message}`);
+        // Continue to fallback options
+      }
     }
     
-    if (!retailers.length || retailers.includes('shoprite')) {
-      tasks.push(withTimeout(
-        (useScrapy 
-          ? scrapeShopriteScrappy(query).then(data => ({ retailer: 'Shoprite', ...data }))
-          : scrapeShoprite(query).then(data => ({ retailer: 'Shoprite', ...data }))),
-        SCRAPER_TIMEOUT_MS,
-        'Shoprite'
-      ));
-    }
+    // If we get here, no data sources worked
+    logger.error(`No data sources available for search. Configuration:`, {
+      firestore: firestoreSearchEnabled && firestore,
+      database: useDatabase,
+      json: useJson,
+      databasePath
+    });
     
-    if (!retailers.length || retailers.includes('picknpay')) {
-      tasks.push(withTimeout(
-        (useScrapy 
-          ? scrapePicknPayScrapy(query).then(data => ({ retailer: 'Pick n Pay', ...data }))
-          : scrapePicknPay(query).then(data => ({ retailer: 'Pick n Pay', ...data }))),
-        SCRAPER_TIMEOUT_MS,
-        'Pick n Pay'
-      ));
-    }
-    
-    if (!retailers.length || retailers.includes('makro')) {
-      tasks.push(withTimeout(
-        scrapeMakro(query).then(data => ({ retailer: 'Makro', ...data })),
-        SCRAPER_TIMEOUT_MS,
-        'Makro'
-      ));
-    }
-    
-    if (!retailers.length || retailers.includes('woolworths')) {
-      tasks.push(withTimeout(
-        scrapeWoolworths(query).then(data => ({ retailer: 'Woolworths', ...data })),
-        SCRAPER_TIMEOUT_MS,
-        'Woolworths'
-      ));
-    }
-    
-    if (!retailers.length || retailers.includes('pricecheck')) {
-      tasks.push(withTimeout(
-        scrapePriceCheck(query).then(data => ({ retailer: 'PriceCheck', ...data })),
-        SCRAPER_TIMEOUT_MS,
-        'PriceCheck'
-      ));
-    }
-    
-    // Execute all tasks and allow failures/timeouts without blocking others
-    const settled = await Promise.allSettled(tasks);
-    
-    // Normalize results
-    const results = settled
-      .filter(s => s.status === 'fulfilled')
-      .map(s => s.value)
-      .map(result => ({
-        name: result.retailer,
-        results: result.results || [],
-        error: result.error || false,
-        message: result.message || ''
-      }));
-
-    const combinedResults = { query, retailers: results };
-    
-    return res.json(combinedResults);
+    return res.status(503).json({ 
+      error: 'No data sources available', 
+      message: 'Search is currently unavailable. Please check data source configuration.',
+      available_sources: {
+        firestore: firestoreSearchEnabled && firestore,
+        database: useDatabase,
+        json: useJson
+      },
+      configuration: {
+        databasePath,
+        useFirebase: config.dataSources.useFirebase,
+        useDatabase: config.dataSources.useDatabase,
+        useJson: config.dataSources.useJson
+      }
+    });
     
   } catch (error) {
     logger.error(`Search API error: ${error.message}`);
@@ -162,7 +162,7 @@ router.post('/', async (req, res) => {
 
 /**
  * @route GET /api/search
- * @description Search for products across multiple retailers (GET version for frontend compatibility)
+ * @description Search for products across multiple retailers (DATABASE ONLY)
  * @access Public
  */
 router.get('/', async (req, res) => {
@@ -183,98 +183,68 @@ router.get('/', async (req, res) => {
 
     // Prefer Firestore if enabled
     if (firestoreSearchEnabled && firestore && typeof firestore.searchPrices === 'function') {
+      try {
       const products = await firestore.searchPrices({ query, retailer: retailersArray[0] });
+        logger.info(`Found ${products.length} products from Firestore`);
       return res.json({ query, results: products });
+      } catch (error) {
+        logger.error(`Firestore search failed: ${error.message}`);
+        // Continue to fallback options
+      }
     }
 
     // Use database search if enabled
     if (useDatabase) {
+      try {
       const results = await searchProducts({
         query,
         retailer: retailersArray.length ? retailersArray[0] : undefined,
         dbPath: databasePath
       });
       
+        logger.info(`Found ${results.totalProducts || 0} products from database`);
       return res.json(results);
+      } catch (error) {
+        logger.error(`Database search failed: ${error.message}`);
+        // Continue to fallback options
+      }
     }
     
-    // Otherwise, scrape retailers in real-time with timeouts
-    const withTimeout = (promise, ms, retailerName) => {
-      return Promise.race([
-        promise,
-        new Promise(resolve => setTimeout(() => resolve({ retailer: retailerName, results: [], error: true, message: 'Timed out' }), ms))
-      ]);
-    };
-    const SCRAPER_TIMEOUT_MS = parseInt(process.env.SCRAPER_TIMEOUT_MS || '15000', 10);
-
-    const tasks = [];
-    
-    if (!retailersArray.length || retailersArray.includes('checkers')) {
-      tasks.push(withTimeout(
-        (useScrapy 
-          ? scrapeCheckersScrapy(query).then(data => ({ retailer: 'Checkers', ...data }))
-          : scrapeCheckers(query).then(data => ({ retailer: 'Checkers', ...data }))),
-        SCRAPER_TIMEOUT_MS,
-        'Checkers'
-      ));
+    // Use local crawler JSON if enabled
+    if (useJson) {
+      try {
+      const products = searchCrawlerJson({ query, retailer: retailersArray[0] });
+        logger.info(`Found ${products.length} products from JSON cache`);
+      return res.json({ query, results: products });
+      } catch (error) {
+        logger.error(`JSON search failed: ${error.message}`);
+        // Continue to fallback options
+      }
     }
     
-    if (!retailersArray.length || retailersArray.includes('shoprite')) {
-      tasks.push(withTimeout(
-        (useScrapy 
-          ? scrapeShopriteScrappy(query).then(data => ({ retailer: 'Shoprite', ...data }))
-          : scrapeShoprite(query).then(data => ({ retailer: 'Shoprite', ...data }))),
-        SCRAPER_TIMEOUT_MS,
-        'Shoprite'
-      ));
-    }
+    // If we get here, no data sources worked
+    logger.error(`No data sources available for search. Configuration:`, {
+      firestore: firestoreSearchEnabled && firestore,
+      database: useDatabase,
+      json: useJson,
+      databasePath
+    });
     
-    if (!retailersArray.length || retailersArray.includes('picknpay')) {
-      tasks.push(withTimeout(
-        (useScrapy 
-          ? scrapePicknPayScrapy(query).then(data => ({ retailer: 'Pick n Pay', ...data }))
-          : scrapePicknPay(query).then(data => ({ retailer: 'Pick n Pay', ...data }))),
-        SCRAPER_TIMEOUT_MS,
-        'Pick n Pay'
-      ));
-    }
-    
-    if (!retailersArray.length || retailersArray.includes('makro')) {
-      tasks.push(withTimeout(
-        scrapeMakro(query).then(data => ({ retailer: 'Makro', ...data })),
-        SCRAPER_TIMEOUT_MS,
-        'Makro'
-      ));
-    }
-    
-    if (!retailersArray.length || retailersArray.includes('woolworths')) {
-      tasks.push(withTimeout(
-        scrapeWoolworths(query).then(data => ({ retailer: 'Woolworths', ...data })),
-        SCRAPER_TIMEOUT_MS,
-        'Woolworths'
-      ));
-    }
-    
-    if (!retailersArray.length || retailersArray.includes('pricecheck')) {
-      tasks.push(withTimeout(
-        scrapePriceCheck(query).then(data => ({ retailer: 'PriceCheck', ...data })),
-        SCRAPER_TIMEOUT_MS,
-        'PriceCheck'
-      ));
-    }
-
-    const settled = await Promise.allSettled(tasks);
-
-    const products = settled
-      .filter(s => s.status === 'fulfilled')
-      .map(s => s.value)
-      .flatMap(result => (result && Array.isArray(result.results)) ? result.results : [])
-      .map(product => ({
-        ...product,
-        retailer: product.store || product.retailer
-      }));
-    
-    return res.json({ query, results: products });
+    return res.status(503).json({ 
+      error: 'No data sources available', 
+      message: 'Search is currently unavailable. Please check data source configuration.',
+      available_sources: {
+        firestore: firestoreSearchEnabled && firestore,
+        database: useDatabase,
+        json: useJson
+      },
+      configuration: {
+        databasePath,
+        useFirebase: config.dataSources.useFirebase,
+        useDatabase: config.dataSources.useDatabase,
+        useJson: config.dataSources.useJson
+      }
+    });
     
   } catch (error) {
     logger.error(`GET search API error: ${error.message}`);
@@ -396,6 +366,73 @@ router.get('/stats', async (req, res) => {
     
   } catch (error) {
     logger.error(`Database stats API error: ${error.message}`);
+    return res.status(500).json({ error: 'Server error', message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/search/status
+ * @description Get the status of all data sources
+ * @access Public
+ */
+router.get('/status', async (req, res) => {
+  try {
+    const status = {
+      timestamp: new Date().toISOString(),
+      dataSources: {
+        firestore: {
+          enabled: firestoreSearchEnabled,
+          available: !!(firestore && typeof firestore.searchPrices === 'function'),
+          path: 'Firestore'
+        },
+        database: {
+          enabled: useDatabase,
+          available: false,
+          path: databasePath
+        },
+        json: {
+          enabled: useJson,
+          available: false,
+          path: 'Local JSON files'
+        }
+      },
+      configuration: {
+        useFirebase: config.dataSources.useFirebase,
+        useDatabase: config.dataSources.useDatabase,
+        useJson: config.dataSources.useJson,
+        databasePath: config.dataSources.databasePath
+      }
+    };
+
+    // Check database availability
+    if (useDatabase) {
+      try {
+        const fs = require('fs');
+        status.dataSources.database.available = fs.existsSync(databasePath);
+        if (status.dataSources.database.available) {
+          const stats = await getDatabaseStats(databasePath);
+          status.dataSources.database.stats = stats;
+        }
+      } catch (error) {
+        logger.error(`Error checking database status: ${error.message}`);
+      }
+    }
+
+    // Check JSON availability
+    if (useJson) {
+      try {
+        const data = loadCrawlerJsonData();
+        status.dataSources.json.available = data.length > 0;
+        status.dataSources.json.count = data.length;
+      } catch (error) {
+        logger.error(`Error checking JSON status: ${error.message}`);
+      }
+    }
+
+    return res.json(status);
+    
+  } catch (error) {
+    logger.error(`Status API error: ${error.message}`);
     return res.status(500).json({ error: 'Server error', message: error.message });
   }
 });

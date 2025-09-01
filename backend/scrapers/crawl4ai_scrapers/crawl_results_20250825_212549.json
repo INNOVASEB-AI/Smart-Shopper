@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-08-25T21:25:49.602700",
+  "total_retailers": 6,
+  "total_products": 0,
+  "results": {
+    "PriceCheck": {
+      "error": "firecrawl SDK is not installed"
+    },
+    "Checkers": {
+      "error": "firecrawl SDK is not installed"
+    },
+    "Shoprite": {
+      "error": "firecrawl SDK is not installed"
+    },
+    "PicknPay": {
+      "error": "firecrawl SDK is not installed"
+    },
+    "Makro": {
+      "error": "firecrawl SDK is not installed"
+    },
+    "Woolworths": {
+      "error": "firecrawl SDK is not installed"
+    }
+  }
+}

@@ -5,10 +5,22 @@
 
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const { logger } = require('../../logger');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const BROWSER_HEADERS = require('../browserHeaders');
+
+// Firecrawl guard
+const USE_FIRECRAWL = process.env.USE_FIRECRAWL === 'true';
+const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+
+// Resolve venv python if present
+function getPythonBinary() {
+  const venvPath = path.join(__dirname, 'venv', 'bin', 'python3');
+  if (fs.existsSync(venvPath)) return venvPath;
+  return 'python3';
+}
 
 /**
  * Executes a Python script with the provided arguments
@@ -21,12 +33,15 @@ function runPythonScript(scriptName, args = []) {
   return new Promise((resolve, reject) => {
     // Construct the path to the Python script
     const scriptPath = path.join(__dirname, `${scriptName}.py`);
+    const pythonBinary = getPythonBinary();
     
     // Log the command being executed
     logger.info(`Executing Python script: ${scriptPath} with args: ${args.join(' ')}`);
     
-    // Spawn a child process to run the Python script
-    const pythonProcess = spawn('python3', [scriptPath, ...args]);
+    // Spawn a child process to run the Python script with suppressed logging
+    const pythonProcess = spawn(pythonBinary, [scriptPath, ...args], {
+      env: { ...process.env, SUPPRESS_LOGGING: 'true' }
+    });
     
     let dataString = '';
     let errorString = '';
@@ -52,20 +67,26 @@ function runPythonScript(scriptName, args = []) {
       
       // Try to parse the output as JSON
       try {
-        // Extract any JSON content from the output
-        const jsonMatch = dataString.match(/\[.*\]/s) || dataString.match(/\{.*\}/s);
-        
-        if (jsonMatch) {
-          const jsonData = JSON.parse(jsonMatch[0]);
-          resolve(jsonData);
-        } else {
-          logger.info(`Python script output: ${dataString}`);
-          resolve([]); // Return empty array if no JSON found
-        }
+        // First try to parse the entire output as JSON
+        const jsonData = JSON.parse(dataString.trim());
+        resolve(jsonData);
       } catch (error) {
-        logger.error(`Failed to parse JSON from Python output: ${error.message}`);
-        logger.debug(`Raw output: ${dataString}`);
-        resolve([]); // Return empty array on parse error
+        // If that fails, try to extract JSON content from the output
+        try {
+          const jsonMatch = dataString.match(/\{[\s\S]*\}$/);
+          
+          if (jsonMatch) {
+            const jsonData = JSON.parse(jsonMatch[0]);
+            resolve(jsonData);
+          } else {
+            logger.info(`Python script output: ${dataString}`);
+            resolve([]); // Return empty array if no JSON found
+          }
+        } catch (error2) {
+          logger.error(`Failed to parse JSON from Python output: ${error.message}`);
+          logger.debug(`Raw output: ${dataString}`);
+          resolve([]); // Return empty array on parse error
+        }
       }
     });
     
@@ -213,9 +234,16 @@ async function scrapePriceCheck(query) {
  */
 async function searchProducts(options = {}) {
   try {
-    // Build arguments array
-    const args = ['search'];
+    // Build arguments array - db-path must come before the subcommand
+    const args = [];
     
+    // Custom database path (must come first)
+    if (options.dbPath) args.push('--db-path', options.dbPath);
+    
+    // Add subcommand
+    args.push('search');
+    
+    // Add search options
     if (options.query) args.push('--query', options.query);
     if (options.retailer) args.push('--retailer', options.retailer);
     if (options.category) args.push('--category', options.category);
@@ -224,9 +252,6 @@ async function searchProducts(options = {}) {
     if (options.maxPrice) args.push('--max-price', options.maxPrice);
     if (options.limit) args.push('--limit', options.limit);
     if (options.offset) args.push('--offset', options.offset);
-    
-    // Custom database path
-    if (options.dbPath) args.push('--db-path', options.dbPath);
     
     // Call the API integration script
     const output = await runPythonScript('api_integration', args);
@@ -256,11 +281,14 @@ async function searchProducts(options = {}) {
  */
 async function getProductDetails(productId, dbPath) {
   try {
-    // Build arguments array
-    const args = ['details', productId];
+    // Build arguments array - db-path must come before the subcommand
+    const args = [];
     
-    // Custom database path
+    // Custom database path (must come first)
     if (dbPath) args.push('--db-path', dbPath);
+    
+    // Add subcommand and product ID
+    args.push('details', productId);
     
     // Call the API integration script
     const output = await runPythonScript('api_integration', args);
@@ -287,11 +315,14 @@ async function getProductDetails(productId, dbPath) {
  */
 async function getDatabaseStats(dbPath) {
   try {
-    // Build arguments array
-    const args = ['stats'];
+    // Build arguments array - db-path must come before the subcommand
+    const args = [];
     
-    // Custom database path
+    // Custom database path (must come first)
     if (dbPath) args.push('--db-path', dbPath);
+    
+    // Add subcommand
+    args.push('stats');
     
     // Call the API integration script
     const output = await runPythonScript('api_integration', args);
@@ -365,7 +396,8 @@ async function startScheduler(options = {}) {
     if (options.dbPath) args.push('--db-path', options.dbPath);
     
     // Call the scheduler script - we won't wait for it to finish since it runs continuously
-    const childProcess = spawn('python3', [
+    const pythonBinary = getPythonBinary();
+    const childProcess = spawn(pythonBinary, [
       path.join(__dirname, 'scheduler.py'),
       ...args
     ]);
@@ -425,6 +457,36 @@ async function listRetailers() {
   }
 }
 
+function runPython(modulePath, args = [], env = {}) {
+  return new Promise((resolve, reject) => {
+    const pythonBinary = getPythonBinary();
+    const pyEnv = { ...process.env, ...env };
+    const child = spawn(pythonBinary, [modulePath, ...args], { env: pyEnv });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (d) => (stdout += d.toString()));
+    child.stderr.on('data', (d) => (stderr += d.toString()));
+    child.on('close', (code) => {
+      if (code === 0) return resolve(stdout);
+      reject(new Error(stderr || `Python exited with code ${code}`));
+    });
+  });
+}
+
+async function runFirecrawlOnce({ retailer, limit = 200, dbPath = './scrapers/crawl4ai_scrapers/data/products.db' }) {
+  if (!USE_FIRECRAWL) throw new Error('USE_FIRECRAWL not enabled');
+  if (!FIRECRAWL_API_KEY) throw new Error('FIRECRAWL_API_KEY not set');
+  const modulePath = path.resolve(__dirname, 'firecrawl_integration.py');
+  const args = ['run-once', '--retailer', retailer, '--limit', String(limit), '--db-path', dbPath];
+  const stdout = await runPython(modulePath, args, { FIRECRAWL_API_KEY });
+  try {
+    return JSON.parse(stdout);
+  } catch (e) {
+    logger.error(`Failed to parse firecrawl output: ${e.message}`);
+    return { error: 'Failed to parse firecrawl output', raw: stdout };
+  }
+}
+
 module.exports = {
   // Legacy function
   scrapePriceCheck,
@@ -440,5 +502,6 @@ module.exports = {
   // Crawler/scheduler functions
   runCrawl,
   startScheduler,
-  listRetailers
+  listRetailers,
+  runFirecrawlOnce,
 }; 

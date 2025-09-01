@@ -19,11 +19,15 @@ from datetime import datetime
 import sqlite3
 from pathlib import Path
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure logging - suppress when called from API
+import os
+if os.environ.get('SUPPRESS_LOGGING') == 'true':
+    logging.basicConfig(level=logging.CRITICAL)
+else:
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
 logger = logging.getLogger("product_database")
 
 class ProductDatabase:

@@ -1,0 +1,88 @@
+name: Update Firestore with Product Data
+
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC (4:00 AM SAST)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [ main ]
+    paths:
+      - 'backend/scrapers/**'
+      - '.github/workflows/update-firestore.yml'
+
+jobs:
+  update-firestore:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+        
+    - name: Install Python dependencies
+      run: |
+        cd backend/scrapers/crawl4ai_scrapers
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install firecrawl-py
+        
+    - name: Install Node.js dependencies
+      run: |
+        cd backend
+        npm install
+        
+    - name: Set up Firebase credentials
+      run: |
+        echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > backend/sa-key.json
+        
+    - name: Run Firecrawl crawlers
+      env:
+        FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+      run: |
+        cd backend/scrapers/crawl4ai_scrapers
+        python run_firecrawl_all.py --limit 50 --output crawl_results.json
+        
+    - name: Upload results to Firestore
+      run: |
+        cd backend
+        node tools/upload-to-firestore.js
+        
+    - name: Update price history
+      run: |
+        cd backend
+        node tools/update-price-history.js
+        
+    - name: Generate report
+      run: |
+        cd backend
+        node tools/generate-update-report.js
+        
+    - name: Upload report artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: update-report
+        path: backend/reports/
+        
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "✅ Firestore update completed successfully"
+        echo "📊 Check the update report for details"
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Firestore update failed"
+        echo "Check the logs for details" 

@@ -24,6 +24,29 @@ function debounce(func, delay) {
   };
 }
 
+// Anonymous-mode storage helpers (localStorage fallback)
+function getShoppingListsFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem('shoppingLists');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error('Failed to read shopping lists from localStorage:', e);
+    return [];
+  }
+}
+
+function saveShoppingListsToLocalStorage(lists) {
+  try {
+    localStorage.setItem('shoppingLists', JSON.stringify(lists || []));
+    return true;
+  } catch (e) {
+    console.error('Failed to save shopping lists to localStorage:', e);
+    return false;
+  }
+}
+
 // Internal state to avoid excessive Firestore reads
 let cachedLists = null;
 let lastUserCached = null;
@@ -84,12 +107,22 @@ async function migrateFromLocalStorage() {
 async function getShoppingListsFromFirestore() {
   const userId = getCurrentUserId();
   try {
+    // Use localStorage for anonymous users instead of Firestore (avoids rules errors)
+    if (userId === 'anonymous') {
+      const lists = getShoppingListsFromLocalStorage();
+      console.log('Loaded', lists.length, 'lists from localStorage for anonymous user');
+      return lists;
+    }
+
     console.log('Fetching lists from Firestore for user:', userId);
     const listsRef = collection(db, 'users', userId, 'lists');
     const listsSnapshot = await getDocs(listsRef);
     const lists = [];
-    listsSnapshot.forEach(doc => {
-      lists.push(doc.data());
+    listsSnapshot.forEach(d => {
+      const data = d.data();
+      const id = d.id;
+      // Ensure the object has a stable id from the document id
+      lists.push({ id, ...data });
     });
     console.log('Successfully loaded', lists.length, 'lists from Firestore');
     return lists;
@@ -99,36 +132,24 @@ async function getShoppingListsFromFirestore() {
   }
 }
 
-// Saves lists to Firestore
+// Saves lists to Firestore without deleting any existing docs
 async function saveShoppingListsToFirestore(lists) {
   const userId = getCurrentUserId();
   try {
-    const batch = [];
-    
-    // First, get the list of existing docs to find ones that need deletion
-    const listsRef = collection(db, 'users', userId, 'lists');
-    const existingDocs = await getDocs(listsRef);
-    const existingIds = new Set();
-    existingDocs.forEach(doc => existingIds.add(doc.id));
-    
-    // Find IDs to delete (those in Firestore but not in the new lists)
-    const currentIds = new Set(lists.map(list => list.id));
-    const idsToDelete = [...existingIds].filter(id => !currentIds.has(id));
-    
-    // Queue deletions
-    for (const id of idsToDelete) {
-      const docRef = doc(db, 'users', userId, 'lists', id);
-      batch.push(deleteDoc(docRef));
+    // Anonymous users persist to localStorage
+    if (userId === 'anonymous') {
+      return saveShoppingListsToLocalStorage(lists);
     }
-    
-    // Queue updates/creations
+
+    const operations = [];
+
+    // Upsert each list; do not delete anything implicitly
     for (const list of lists) {
       const docRef = doc(db, 'users', userId, 'lists', list.id);
-      batch.push(setDoc(docRef, list));
+      operations.push(setDoc(docRef, list));
     }
-    
-    // Execute all operations
-    await Promise.all(batch);
+
+    await Promise.all(operations);
     return true;
   } catch (e) {
     console.error('Failed to save shopping lists to Firestore:', e);
@@ -173,12 +194,10 @@ export async function getShoppingLists() {
   return [...cachedLists]; // Return a copy to prevent direct modification
 }
 
-// Create a debounced version for better performance
-const debouncedSave = debounce(saveShoppingListsToFirestore, 300);
-
+// Save immediately to ensure persistence across refreshes
 export async function saveShoppingLists(lists) {
   cachedLists = [...lists]; // Update the cached copy
-  await debouncedSave(lists);
+  await saveShoppingListsToFirestore(lists);
 }
 
 export async function addList(listName) {
@@ -203,9 +222,22 @@ export async function addList(listName) {
 }
 
 export async function deleteList(listId) {
+  const userId = getCurrentUserId();
+  try {
+    if (userId !== 'anonymous') {
+      const docRef = doc(db, 'users', userId, 'lists', listId);
+      await deleteDoc(docRef);
+    }
+  } catch (e) {
+    console.error('Failed to delete list from Firestore:', e);
+  }
+  // Update local cache and storage
   let lists = await getShoppingLists();
   lists = lists.filter(list => list.id !== listId);
-  await saveShoppingLists(lists);
+  cachedLists = lists;
+  if (userId === 'anonymous') {
+    saveShoppingListsToLocalStorage(lists);
+  }
 }
 
 export async function addItemToList(listId, product) {
@@ -284,8 +316,10 @@ async function getLoyaltyCardsFromFirestore() {
     const cardsRef = collection(db, 'users', userId, 'loyaltyCards');
     const cardsSnapshot = await getDocs(cardsRef);
     const cards = [];
-    cardsSnapshot.forEach(doc => {
-      cards.push(doc.data());
+    cardsSnapshot.forEach(d => {
+      const data = d.data();
+      const id = d.id;
+      cards.push({ id, ...data });
     });
     return cards;
   } catch (e) {
@@ -366,9 +400,56 @@ export async function saveLoyaltyCards(cards) {
   await saveLoyaltyCardsToFirestore(cards);
 }
 
+export async function migrateAnonymousListsToUser() {
+  try {
+    if (!auth.currentUser) return;
+    const userId = auth.currentUser.uid;
+
+    // Read anonymous lists
+    const anonymousListsRef = collection(db, 'users', 'anonymous', 'lists');
+    const anonSnapshot = await getDocs(anonymousListsRef);
+    const anonymousLists = [];
+    const anonIds = [];
+    anonSnapshot.forEach(d => { anonymousLists.push(d.data()); anonIds.push(d.id); });
+
+    if (anonymousLists.length === 0) {
+      return;
+    }
+
+    // Check existing user lists to avoid overwriting
+    const userListsRef = collection(db, 'users', userId, 'lists');
+    const userSnapshot = await getDocs(userListsRef);
+    const existingUserIds = new Set();
+    userSnapshot.forEach(d => existingUserIds.add(d.id));
+
+    const operations = [];
+
+    // Copy missing anonymous lists to the user path
+    for (const list of anonymousLists) {
+      const listId = list.id;
+      if (!existingUserIds.has(listId)) {
+        const userDocRef = doc(db, 'users', userId, 'lists', listId);
+        operations.push(setDoc(userDocRef, list));
+      }
+    }
+
+    // Optionally clean up anonymous docs
+    for (const anonId of anonIds) {
+      const anonDocRef = doc(db, 'users', 'anonymous', 'lists', anonId);
+      operations.push(deleteDoc(anonDocRef));
+    }
+
+    if (operations.length > 0) {
+      await Promise.all(operations);
+    }
+  } catch (e) {
+    console.error('Failed to migrate anonymous Firestore lists to user:', e);
+  }
+}
+
 // Set up an auth state listener to clear caches when user logs in/out
-auth.onAuthStateChanged(user => {
-  // Invalidate caches when auth state changes
+import { onAuthStateChanged as onAuthStateChangedAuth } from './firebase.js';
+onAuthStateChangedAuth(auth, (user) => {
   cachedLists = null;
   cachedCards = null;
   lastUserCached = user ? user.uid : 'anonymous';

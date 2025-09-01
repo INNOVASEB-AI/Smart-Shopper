@@ -1,4 +1,8 @@
-crawl4ai>=0.5.0
+crawl4ai>=0.6.3
 python-dotenv==1.0.1
-aiohttp==3.9.1
-aiofiles==23.2.1 
+aiohttp>=3.9.1
+aiofiles>=24.1.0
+# Firecrawl SDK for optional crawling/extraction integration
+firecrawl-py>=0.0.14
+pydantic>=2.6.0
+firebase-admin>=6.6.0 

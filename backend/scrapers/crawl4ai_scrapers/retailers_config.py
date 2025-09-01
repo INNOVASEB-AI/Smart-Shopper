@@ -12,7 +12,7 @@ RETAILERS = [
     {
         "name": "PriceCheck",
         "sitemap": "https://www.pricecheck.co.za/sitemap.xml",
-        "module": "pricecheck_crawler",
+        "module": "pricecheck_simple_crawler",  # Updated to use SimpleBaseCrawler
         "class": "PriceCheckCrawler",
         "url_patterns": ["/offer/", "/offers/"],
         "rate_limit": (1.0, 3.0),
@@ -21,7 +21,7 @@ RETAILERS = [
     {
         "name": "Checkers",
         "sitemap": "https://www.checkers.co.za/sitemap.xml",
-        "module": "checkers_crawler",
+        "module": "checkers_simple_crawler",  # Updated to use SimpleBaseCrawler
         "class": "CheckersCrawler",
         "url_patterns": ["/p/", "/products/"],
         "rate_limit": (1.5, 3.5),
@@ -30,7 +30,7 @@ RETAILERS = [
     {
         "name": "Shoprite",
         "sitemap": "https://www.shoprite.co.za/sitemap.xml",
-        "module": "shoprite_crawler",  # To be implemented
+        "module": "shoprite_crawler",  # Now implemented with SimpleBaseCrawler
         "class": "ShopriteCrawler",
         "url_patterns": ["/p/", "/products/"],
         "rate_limit": (1.5, 3.5),
@@ -39,7 +39,7 @@ RETAILERS = [
     {
         "name": "PicknPay",
         "sitemap": "https://www.pnp.co.za/sitemap.xml",
-        "module": "picknpay_crawler",  # To be implemented
+        "module": "picknpay_crawler",  # Now implemented with SimpleBaseCrawler
         "class": "PicknPayCrawler",
         "url_patterns": ["/prodid/", "/products/"],
         "rate_limit": (1.0, 3.0),
@@ -48,7 +48,7 @@ RETAILERS = [
     {
         "name": "Makro",
         "sitemap": "https://www.makro.co.za/sitemap.xml",
-        "module": "makro_crawler",  # To be implemented
+        "module": "makro_crawler",  # Now implemented with SimpleBaseCrawler
         "class": "MakroCrawler",
         "url_patterns": ["/p/", "/product/"],
         "rate_limit": (2.0, 4.0),  # More conservative
@@ -57,7 +57,7 @@ RETAILERS = [
     {
         "name": "Woolworths",
         "sitemap": "https://www.woolworths.co.za/sitemap.xml",
-        "module": "woolworths_crawler",  # To be implemented
+        "module": "woolworths_crawler",  # Now implemented with SimpleBaseCrawler
         "class": "WoolworthsCrawler",
         "url_patterns": ["/prod/", "/product/"],
         "rate_limit": (2.0, 4.0),  # More conservative

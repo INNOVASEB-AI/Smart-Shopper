@@ -1,18 +1,21 @@
-const scrapeShoprite = require('./scrapeShoprite');
-const scrapePicknPay = require('./scrapePicknPay');
-const scrapeMakro = require('./scrapeMakro');
-const scrapeWoolworths = require('./scrapeWoolworths');
-const { scrapePriceCheckJS } = require('./crawl4ai_scrapers');
-const { scrapeCheckersScrapy } = require('../scrapy_scrapers');
-
-// Use the JS implementation instead of the Python one to avoid dependency issues
-const scrapePriceCheck = scrapePriceCheckJS;
+// Only export database search functions - NO LIVE SCRAPING
+const { 
+  searchProducts,
+  getProductDetails, 
+  getDatabaseStats
+} = require('./crawl4ai_scrapers');
 
 module.exports = {
-  scrapeCheckers: scrapeCheckersScrapy,
-  scrapeShoprite,
-  scrapePicknPay,
-  scrapeMakro,
-  scrapeWoolworths,
-  scrapePriceCheck,
+  // Database search functions only
+  searchProducts,
+  getProductDetails,
+  getDatabaseStats,
+  
+  // Remove all live scraping functions
+  // scrapeCheckers: REMOVED - use database only
+  // scrapeShoprite: REMOVED - use database only  
+  // scrapePicknPay: REMOVED - use database only
+  // scrapeMakro: REMOVED - use database only
+  // scrapeWoolworths: REMOVED - use database only
+  // scrapePriceCheck: REMOVED - use database only
 };

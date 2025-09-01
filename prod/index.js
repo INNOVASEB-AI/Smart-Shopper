@@ -1,20 +1,74 @@
 /**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ * Smart Shopper SA - Production Backend API
+ * 
+ * This file provides the backend API for the deployed Smart Shopper SA application.
+ * It serves product data from the database and handles search requests.
  */
 
-// Commented out unused imports to fix ESLint errors
-// const {onRequest} = require("firebase-functions/v2/https");
-// const logger = require("firebase-functions/logger");
+const { onRequest } = require("firebase-functions/v2/https");
+const cors = require("cors");
+const { logger } = require("firebase-functions");
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+// Import the search functionality
+const searchRouter = require("../backend/routes/api/search");
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+// Create Express app for the API
+const express = require("express");
+const app = express();
+
+// Enable CORS for all routes
+app.use(cors({ origin: true }));
+app.use(express.json());
+
+// Use the search router for /api/search endpoints
+app.use('/api/search', searchRouter);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    service: 'Smart Shopper SA API'
+  });
+});
+
+// Root endpoint
+app.get('/api', (req, res) => {
+  res.json({ 
+    message: 'Smart Shopper SA API',
+    version: '1.0.0',
+    endpoints: {
+      search: '/api/search',
+      health: '/api/health',
+      status: '/api/search/status'
+    }
+  });
+});
+
+// Export the API as a Firebase Function
+exports.api = onRequest(app);
+
+// Export individual endpoints for better performance
+exports.search = onRequest(async (req, res) => {
+  try {
+    // Import search functionality
+    const searchRouter = require("../backend/routes/api/search");
+    
+    // Handle the request
+    await searchRouter(req, res);
+  } catch (error) {
+    logger.error('Search API error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+exports.health = onRequest((req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    service: 'Smart Shopper SA API'
+  });
+});

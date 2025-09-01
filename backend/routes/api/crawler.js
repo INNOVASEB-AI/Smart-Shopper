@@ -11,6 +11,10 @@ const {
   getSequentialCrawlResults 
 } = require('../../scrapers/crawl4ai_scrapers/sequential_crawler');
 
+// Optional Firecrawl integration
+const { runFirecrawlOnce } = require('../../scrapers/crawl4ai_scrapers');
+const USE_FIRECRAWL = process.env.USE_FIRECRAWL === 'true';
+
 /**
  * @route POST /api/crawler/start
  * @description Start a sequential crawl of PriceCheck.co.za using the sitemap
@@ -97,6 +101,27 @@ router.get('/results', async (req, res) => {
       status: 'error',
       message: error.message
     });
+  }
+});
+
+/**
+ * @route POST /api/crawler/firecrawl
+ * @description Trigger a Firecrawl-based one-off crawl for a retailer (stores into DB)
+ * @access Public (guard upstream if needed)
+ */
+router.post('/firecrawl', async (req, res) => {
+  try {
+    if (!USE_FIRECRAWL) {
+      return res.status(400).json({ error: 'USE_FIRECRAWL is not enabled' });
+    }
+    const { retailer, limit, dbPath } = req.body || {};
+    if (!retailer) return res.status(400).json({ error: 'retailer is required' });
+
+    const result = await runFirecrawlOnce({ retailer, limit, dbPath });
+    return res.json({ status: 'success', ...result });
+  } catch (error) {
+    logger.error(`Error running firecrawl: ${error.message}`);
+    return res.status(500).json({ status: 'error', message: error.message });
   }
 });
 

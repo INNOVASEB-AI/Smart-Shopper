@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Shopper - Price Comparison Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .list-info {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #4f46e5;
+        }
+
+        .list-info h3 {
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .items-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .item-tag {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .comparison-results {
+            space-y: 3;
+        }
+
+        .store-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .store-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .store-card.best-price {
+            border-color: #10b981;
+            background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+        }
+
+        .store-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .store-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .store-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: white;
+        }
+
+        .store-icon.checkers { background: #dc2626; }
+        .store-icon.picknpay { background: #059669; }
+        .store-icon.woolworths { background: #7c3aed; }
+        .store-icon.shoprite { background: #ea580c; }
+        .store-icon.makro { background: #2563eb; }
+
+        .store-details h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .store-details p {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .price-info {
+            text-align: right;
+        }
+
+        .total-price {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .savings {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .savings.positive {
+            color: #dc2626;
+        }
+
+        .savings.negative {
+            color: #059669;
+        }
+
+        .best-price-badge {
+            background: #10b981;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .demo-note {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #92400e;
+        }
+
+        .demo-note strong {
+            color: #78350f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛒 Smart Shopper</h1>
+            <p>Price Comparison Demo</p>
+        </div>
+
+        <div class="content">
+            <div class="list-info">
+                <h3>📋 Shopping List: "Weekly Groceries"</h3>
+                <div class="items-list">
+                    <span class="item-tag">bread</span>
+                    <span class="item-tag">milk</span>
+                    <span class="item-tag">eggs</span>
+                    <span class="item-tag">butter</span>
+                    <span class="item-tag">cheese</span>
+                    <span class="item-tag">tomatoes</span>
+                    <span class="item-tag">bananas</span>
+                </div>
+            </div>
+
+            <div class="comparison-results">
+                <div class="store-card best-price">
+                    <div class="store-header">
+                        <div class="store-info">
+                            <div class="store-icon makro">M</div>
+                            <div class="store-details">
+                                <h4>Makro <span class="best-price-badge">BEST PRICE</span></h4>
+                                <p>7 items found</p>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="total-price">R 131.44</div>
+                            <div class="savings negative">You save R 0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="store-card">
+                    <div class="store-header">
+                        <div class="store-info">
+                            <div class="store-icon shoprite">S</div>
+                            <div class="store-details">
+                                <h4>Shoprite</h4>
+                                <p>7 items found</p>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="total-price">R 142.44</div>
+                            <div class="savings positive">+R 11.00 more</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="store-card">
+                    <div class="store-header">
+                        <div class="store-info">
+                            <div class="store-icon checkers">C</div>
+                            <div class="store-details">
+                                <h4>Checkers</h4>
+                                <p>7 items found</p>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="total-price">R 154.44</div>
+                            <div class="savings positive">+R 23.00 more</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="store-card">
+                    <div class="store-header">
+                        <div class="store-info">
+                            <div class="store-icon picknpay">P</div>
+                            <div class="store-details">
+                                <h4>Pick n Pay</h4>
+                                <p>7 items found</p>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="total-price">R 163.44</div>
+                            <div class="savings positive">+R 32.00 more</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="store-card">
+                    <div class="store-header">
+                        <div class="store-info">
+                            <div class="store-icon woolworths">W</div>
+                            <div class="store-details">
+                                <h4>Woolworths</h4>
+                                <p>7 items found</p>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="total-price">R 182.44</div>
+                            <div class="savings positive">+R 51.00 more</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="demo-note">
+                <strong>💡 Demo Note:</strong> This is a simulated price comparison showing how the feature will work. 
+                In the actual app, prices will be fetched from real-time data crawled from South African retailers. 
+                The comparison helps you find the best deals across multiple stores for your entire shopping list.
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

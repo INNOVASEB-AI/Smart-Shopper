@@ -19,15 +19,15 @@ from urllib.parse import urljoin
 
 # Import crawl4ai components
 from crawl4ai import (
-    Crawl4AI, 
     AsyncWebCrawler, 
     BrowserConfig, 
     CrawlerRunConfig, 
     CacheMode, 
-    DisplayMode
+    DisplayMode,
+    MemoryAdaptiveDispatcher,
+    RateLimiter
 )
-from crawl4ai.async_dispatcher import MemoryAdaptiveDispatcher
-from crawl4ai import RateLimiter, CrawlerMonitor
+from crawl4ai import CrawlerMonitor
 
 # Configure logging
 logging.basicConfig(
@@ -103,7 +103,7 @@ class BaseCrawler:
         }
         
         # Initialize crawl4ai client
-        self.crawler = Crawl4AI()
+        self.crawler = None # No longer needed as Crawl4AI is removed
         
         # Set up rate limiter with more robust settings
         self.rate_limiter = RateLimiter(

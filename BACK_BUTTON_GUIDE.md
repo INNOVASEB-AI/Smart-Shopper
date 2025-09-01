@@ -21,9 +21,6 @@ The Smart Shopper app now has comprehensive back button functionality that works
 
 ### 3. Back Buttons Available On:
 - **List Items View**: `back-to-lists-button` (top-left corner)
-- **Search Tab**: `search-back-button` (header)
-- **Cards Tab**: `cards-back-button` (header)
-- **Settings Tab**: `settings-back-button` (header)
 
 ### 4. Keyboard Support
 - **Escape Key**: Triggers back button functionality
@@ -42,7 +39,6 @@ The Smart Shopper app now has comprehensive back button functionality that works
 3. When user clicks back button:
    - If in list-items-view → goes back to previous tab
    - If modal is open → closes modal
-   - If on main tab → goes to previous tab in history
    - If no history → stays on current tab
 
 ### Event Handling
@@ -82,9 +78,6 @@ updateBackButtonVisibility()
 
 ### Manual Testing Checklist
 - [ ] Back button works from list-items-view
-- [ ] Back button works from search tab
-- [ ] Back button works from cards tab
-- [ ] Back button works from settings tab
 - [ ] Escape key triggers back functionality
 - [ ] Browser back button works
 - [ ] Modals close properly with back button
