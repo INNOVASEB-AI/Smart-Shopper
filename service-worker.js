@@ -4,10 +4,10 @@
  * Provides offline functionality, caching, and PWA features
  */
 
-const CACHE_NAME = 'smart-shopper-v1.0.0';
-const STATIC_CACHE = 'smart-shopper-static-v1.0.0';
-const DYNAMIC_CACHE = 'smart-shopper-dynamic-v1.0.0';
-const API_CACHE = 'smart-shopper-api-v1.0.0';
+const CACHE_NAME = 'smart-shopper-v1.0.1';
+const STATIC_CACHE = 'smart-shopper-static-v1.0.1';
+const DYNAMIC_CACHE = 'smart-shopper-dynamic-v1.0.1';
+const API_CACHE = 'smart-shopper-api-v1.0.1';
 
 // Files to cache immediately
 const STATIC_FILES = [

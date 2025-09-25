@@ -92,9 +92,27 @@ router.post('/', async (req, res) => {
     // Prefer Firestore if enabled
     if (firestoreSearchEnabled && firestore && typeof firestore.searchPrices === 'function') {
       try {
-      const products = await firestore.searchPrices({ query, retailer: retailers[0] });
+        const products = await firestore.searchPrices({ query, retailer: retailers[0] });
         logger.info(`Found ${products.length} products from Firestore`);
-      return res.json({ query, results: products });
+        
+        // Group products by retailer for frontend compatibility
+        const groupedResults = {};
+        let totalProducts = 0;
+        
+        products.forEach(product => {
+          const retailer = product.store || product.retailer || 'Unknown';
+          if (!groupedResults[retailer]) {
+            groupedResults[retailer] = [];
+          }
+          groupedResults[retailer].push(product);
+          totalProducts++;
+        });
+        
+        return res.json({ 
+          query, 
+          totalProducts,
+          results: groupedResults 
+        });
       } catch (error) {
         logger.error(`Firestore search failed: ${error.message}`);
         // Continue to fallback options
@@ -184,9 +202,27 @@ router.get('/', async (req, res) => {
     // Prefer Firestore if enabled
     if (firestoreSearchEnabled && firestore && typeof firestore.searchPrices === 'function') {
       try {
-      const products = await firestore.searchPrices({ query, retailer: retailersArray[0] });
+        const products = await firestore.searchPrices({ query, retailer: retailersArray[0] });
         logger.info(`Found ${products.length} products from Firestore`);
-      return res.json({ query, results: products });
+        
+        // Group products by retailer for frontend compatibility
+        const groupedResults = {};
+        let totalProducts = 0;
+        
+        products.forEach(product => {
+          const retailer = product.store || product.retailer || 'Unknown';
+          if (!groupedResults[retailer]) {
+            groupedResults[retailer] = [];
+          }
+          groupedResults[retailer].push(product);
+          totalProducts++;
+        });
+        
+        return res.json({ 
+          query, 
+          totalProducts,
+          results: groupedResults 
+        });
       } catch (error) {
         logger.error(`Firestore search failed: ${error.message}`);
         // Continue to fallback options

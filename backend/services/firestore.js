@@ -8,7 +8,13 @@ function initFirebase() {
 	if (initialized) return;
 	try {
 		// Prefer explicit GOOGLE_APPLICATION_CREDENTIALS, else try local sa-key.json
-		const credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || path.resolve(__dirname, '..', 'sa-key.json');
+		// If GOOGLE_APPLICATION_CREDENTIALS is relative, resolve it from the backend root
+		let credsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+		if (credsPath && !path.isAbsolute(credsPath)) {
+			credsPath = path.resolve(__dirname, '..', credsPath);
+		} else if (!credsPath) {
+			credsPath = path.resolve(__dirname, '..', 'sa-key.json');
+		}
 		if (fs.existsSync(credsPath)) {
 			const serviceAccount = require(credsPath);
 			admin.initializeApp({
@@ -38,6 +44,7 @@ async function searchPrices({ query, retailer, limit = 300 }) {
 
 	const snap = await ref.get();
 	const q = (query || '').toLowerCase();
+	
 	const results = [];
 	snap.forEach(doc => {
 		const d = doc.data();

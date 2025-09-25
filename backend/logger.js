@@ -16,7 +16,7 @@ const formats = {
 
 // Create the logger
 const logger = winston.createLogger({
-  level: config.logging.level,
+  level: config.app.logLevel || 'info',
   transports: [
     new winston.transports.Console({
       format: formats.console,

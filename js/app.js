@@ -899,8 +899,37 @@ function setupSettingsEventListeners() {
   }
 }
 
+// --- Helpers ---
+const RETAILER_ALIASAS = {
+  "picknpay": "Pick n Pay",
+  "pick n pay": "Pick n Pay",
+  "picknpay.com": "Pick n Pay",
+  "picknpay-hyper": "Pick n Pay",
+  "pricecheck": "PriceCheck",
+  "checkers": "Checkers",
+  "shoprite": "Shoprite",
+  "makro": "Makro",
+  "woolworths": "Woolworths"
+};
+
+function normalizeRetailerName(name) {
+  if (!name) return "";
+  const key = String(name).toLowerCase().trim();
+  return RETAILER_ALIASAS[key] || name;
+}
+
+function groupByRetailer(products) {
+  const byRetailer = {};
+  for (const p of products) {
+    const retailer = normalizeRetailerName(p.retailer || p.store || p.source);
+    if (!retailer) continue;
+    (byRetailer[retailer] ||= []).push(p);
+  }
+  return byRetailer;
+}
+
 // Search Functionality
-function handleSearch() {
+async function handleSearch() {
 	const searchInput = document.getElementById("search-input");
 	const searchTerm = searchInput.value.trim();
 	console.log(`handleSearch called for: "${searchTerm}"`);
@@ -929,17 +958,19 @@ function handleSearch() {
 	if (resultsContainer) resultsContainer.innerHTML = "";
 	if (loadingIndicator) loadingIndicator.classList.remove("hidden");
 	
-	// Perform backend search and render
-	fetchSearchResults(sanitized)
-		.then((products) => {
-			if (loadingIndicator) loadingIndicator.classList.add("hidden");
-			displayResults(products);
-		})
-		.catch((error) => {
-			console.error("Search error:", error);
-			if (loadingIndicator) loadingIndicator.classList.add("hidden");
-			if (noResultsMessage) noResultsMessage.classList.remove("hidden");
-		});
+	try {
+		// Perform backend search and render
+		const flat = await fetchSearchResults(sanitized);
+		console.log("[search] flat results:", flat.length, flat.slice(0, 3));
+		
+		if (loadingIndicator) loadingIndicator.classList.add("hidden");
+		displayResults(flat);
+	} catch (error) {
+		console.error("Search error:", error);
+		if (loadingIndicator) loadingIndicator.classList.add("hidden");
+		if (noResultsMessage) noResultsMessage.classList.remove("hidden");
+		displayResults([]); // show "No results"
+	}
 }
 
 // Create a debounced version of the search function
@@ -1082,34 +1113,80 @@ function filterAndDisplaySearchResults(query) {
 }
 
 // Remove the old fetchSearchResults function since we're not using backend
-// async function fetchSearchResults(query) {
-//   try {
-//     // Security: Additional sanitization check before making the request
-//     const sanitizedQuery = sanitizeInput(query);
-//     
-//     console.log("Fetching search results for:", sanitizedQuery);
-//     const response = await fetch(`http://localhost:3001/api/search?query=${encodeURIComponent(sanitizedQuery)}`);
-//     if (!response.ok) throw new Error('Network response was not ok');
-//     const data = await response.json();
-//     displayResults(data.results);
-//   } catch (error) {
-//     console.error("Search error:", error);
-//     document.getElementById("loading-indicator").classList.add("hidden");
-//     document.getElementById("no-results-message").classList.remove("hidden");
-//   }
-// }
+
+// Function to show empty state message
+function showEmptyState(message) {
+	const resultsContainer = document.getElementById('search-results-container');
+	if (resultsContainer) {
+		resultsContainer.innerHTML = `
+			<div class="empty-state">
+				<div class="empty-state-icon">
+					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="11" cy="11" r="8"></circle>
+						<path d="m21 21-4.35-4.35"></path>
+					</svg>
+				</div>
+				<h3 class="empty-state-title">No Results Found</h3>
+				<p class="empty-state-message">${message}</p>
+				<div class="empty-state-actions">
+					<button class="try-again-btn" onclick="clearSearch()">Try Different Search</button>
+				</div>
+			</div>
+		`;
+	}
+}
+
+// Function to clear search and reset results
+function clearSearch() {
+	const searchInput = document.getElementById('search-input');
+	if (searchInput) {
+		searchInput.value = '';
+	}
+	const resultsContainer = document.getElementById('search-results-container');
+	if (resultsContainer) {
+		resultsContainer.innerHTML = `
+			<div class="search-prompt">
+				<div class="search-prompt-icon">
+					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="11" cy="11" r="8"></circle>
+						<path d="m21 21-4.35-4.35"></path>
+					</svg>
+				</div>
+				<h3 class="search-prompt-title">Search for Products</h3>
+				<p class="search-prompt-message">Enter a product name to find the best prices across retailers</p>
+			</div>
+		`;
+	}
+}
 
 // Enhanced displayResults with shopping list integration
-function displayResults(results) {
+function displayResults(products) {
 	try {
-		console.log('displayResults called with results:', results);
+		console.log('displayResults called with products:', products);
+		console.log('Products type:', typeof products);
+		console.log('Products length:', Array.isArray(products) ? products.length : 'not array');
 		
-		if (!results || !results.results) {
-			showEmptyState('No search results available');
+		// Defensive: accept both { results: {...} } and flat arrays
+		let list = Array.isArray(products) ? products : [];
+		if (!list.length && products && products.results) {
+			// If someone calls us with backend format, flatten it
+			for (const [retailer, items] of Object.entries(products.results)) {
+				for (const it of (items || [])) {
+					list.push({ ...it, retailer: normalizeRetailerName(retailer) });
+				}
+			}
+		}
+		
+		console.log('Final products list:', list);
+		console.log('Total products:', list.length);
+		
+		if (!list || list.length === 0) {
+			console.log('No products found, showing empty state');
+			showEmptyState('No products found for your search');
 			return;
 		}
 		
-		const resultsContainer = document.getElementById('results');
+		const resultsContainer = document.getElementById('search-results-container');
 		if (!resultsContainer) {
 			console.error('Results container not found');
 			return;
@@ -1118,17 +1195,14 @@ function displayResults(results) {
 		// Clear previous results
 		resultsContainer.innerHTML = '';
 		
-		const retailers = Object.keys(results.results);
-		
-		if (retailers.length === 0) {
-			showEmptyState('No products found for your search');
-			return;
-		}
+		// Group for display
+		const byRetailer = groupByRetailer(list);
+		console.log('Grouped by retailer:', byRetailer);
 		
 		// Create results HTML with enhanced shopping list integration
 		let resultsHTML = `
 			<div class="results-header">
-				<h3>Results (${results.totalProducts} products)</h3>
+				<h3>Results (${list.length} products)</h3>
 				<div class="results-actions">
 					<button class="add-all-to-list-btn" onclick="addAllToShoppingList()">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1156,8 +1230,8 @@ function displayResults(results) {
 		// Store products globally for list operations
 		window.searchResults = [];
 		
-		retailers.forEach(retailer => {
-			const products = results.results[retailer];
+		// Render each retailer section
+		for (const [retailer, items] of Object.entries(byRetailer)) {
 			
 			resultsHTML += `
 				<div class="retailer-section">
@@ -1166,11 +1240,11 @@ function displayResults(results) {
 						<button class="add-retailer-to-list-btn" onclick="addRetailerToShoppingList('${retailer}')">
 							Add All ${retailer} Items
 						</button>
-				</div>
+					</div>
 					<div class="products-grid">
 			`;
 			
-			products.forEach(product => {
+			items.forEach(product => {
 				// Add to global search results
 				window.searchResults.push(product);
 				
@@ -1243,6 +1317,7 @@ function displayResults(results) {
 				</div>
 			`;
 		});
+		}
 		
 		resultsContainer.innerHTML = resultsHTML;
 		
@@ -4080,107 +4155,26 @@ async function fetchSearchResults(query) {
 	const resp = await fetch(endpoint, { method: 'GET' });
 	if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 	const data = await resp.json();
-	
-	// Helper: choose best match from a list of products for a retailer
-	function pickBestMatch(products, q) {
-		if (!Array.isArray(products) || products.length === 0) return null;
-		const qLower = q.toLowerCase();
-		// Score by: name contains query, then lowest numeric price
-		const scored = products.map(p => {
-			const name = (p.name || '').toLowerCase();
-			const contains = name.includes(qLower) ? 1 : 0;
-			const priceNum = typeof p.price === 'number' ? p.price : parseFloat(String(p.price).replace(/[^0-9.]/g, ''));
-			return { p, contains, priceNum: isNaN(priceNum) ? Infinity : priceNum };
-		});
-		scored.sort((a,b) => {
-			if (b.contains !== a.contains) return b.contains - a.contains; // prefer contains
-			return a.priceNum - b.priceNum; // then cheaper
-		});
-		return scored[0].p;
-	}
-	
-	// Three possible shapes:
-	// 1) { query, results: [ { name, price, retailer, ... } ] } - flat array
-	// 2) { query, retailers: [ { name: 'Checkers', results: [...], error, message } ] } - retailers array
-	// 3) { query, results: { Checkers: [...], Shoprite: [...], ... } } - results as object (current backend)
-	if (Array.isArray(data.results)) {
-		// Group to one item per retailer
-		const byRetailer = {};
-		for (const item of data.results) {
-			const retailer = item.retailer || item.store || 'Unknown';
-			if (!byRetailer[retailer]) byRetailer[retailer] = [];
-			byRetailer[retailer].push(item);
+
+	// Accept EITHER:
+	// A) { results: { Retailer: [items...] }, totalProducts: N, ... }
+	// B) Already-flat: [ { name, price, retailer, ... }, ... ]
+	if (Array.isArray(data)) return data;
+
+	if (data && data.results && typeof data.results === "object") {
+		const flat = [];
+		for (const [retailer, items] of Object.entries(data.results)) {
+			for (const it of (items || [])) {
+				flat.push({
+					...it,
+					retailer: normalizeRetailerName(it.retailer || retailer)
+				});
+			}
 		}
-		const expectedRetailers = ['Checkers','Shoprite','Pick n Pay','Makro','Woolworths','PriceCheck'];
-		const picked = expectedRetailers.map(r => {
-			const best = pickBestMatch(byRetailer[r] || [], sanitizedQuery);
-			if (!best) return { name: sanitizedQuery, price: null, retailer: r, id: `${r}-${sanitizedQuery}` };
-			return {
-				id: best.id || `${r}-${sanitizedQuery}`,
-				name: best.name || sanitizedQuery,
-				price: best.price,
-				retailer: r,
-				imageUrl: best.imageUrl || null,
-				url: best.url || null,
-			};
-		}).filter(Boolean);
-		// Sort by price (known first)
-		return picked.sort((a,b) => {
-			const ap = a.price == null ? Infinity : parseFloat(String(a.price).replace(/[^0-9.]/g, ''));
-			const bp = b.price == null ? Infinity : parseFloat(String(b.price).replace(/[^0-9.]/g, ''));
-			return ap - bp;
-		});
+		return flat;
 	}
-	if (data.results && typeof data.results === 'object' && !Array.isArray(data.results)) {
-		// Handle results as object with retailer keys (current backend format)
-		const expectedRetailers = ['Checkers','Shoprite','Pick n Pay','Makro','Woolworths','PriceCheck'];
-		const picked = expectedRetailers.map(retailer => {
-			// Map frontend retailer names to backend keys
-			const retailerKey = retailer === 'Pick n Pay' ? 'PicknPay' : retailer;
-			const products = data.results[retailerKey] || [];
-			const best = pickBestMatch(products, sanitizedQuery);
-			// Only return retailers that actually have products (no placeholders)
-			if (!best) return null;
-			return {
-				id: best.id || `${retailer}-${sanitizedQuery}`,
-				name: best.name || sanitizedQuery,
-				price: best.price,
-				retailer: retailer,
-				imageUrl: best.imageUrl || best.image || null,
-				url: best.url || null,
-			};
-		}).filter(Boolean);
-		// Sort by price (known first)
-		return picked.sort((a,b) => {
-			const ap = a.price == null ? Infinity : parseFloat(String(a.price).replace(/[^0-9.]/g, ''));
-			const bp = b.price == null ? Infinity : parseFloat(String(b.price).replace(/[^0-9.]/g, ''));
-			return ap - bp;
-		});
-	}
-	if (Array.isArray(data.retailers)) {
-		// Strategy: pick the first matching product per retailer to represent a price for the query
-		const expectedRetailers = ['Checkers','Shoprite','Pick n Pay','Makro','Woolworths','PriceCheck'];
-		const mapByName = Object.fromEntries(data.retailers.map(r => [r.name, r]));
-		const picked = expectedRetailers.map(rName => {
-			const r = mapByName[rName];
-			const first = r && Array.isArray(r.results) ? pickBestMatch(r.results, sanitizedQuery) : null;
-			// Only return retailers that actually have products (no placeholders)
-			if (!first) return null;
-			return {
-				id: first.id || `${rName}-${sanitizedQuery}`,
-				name: first.name || sanitizedQuery,
-				price: first.price,
-				retailer: first.retailer || rName,
-				imageUrl: first.imageUrl || null,
-				url: first.url || null,
-			};
-		}).filter(Boolean);
-		return picked.sort((a,b) => {
-			const ap = a.price == null ? Infinity : parseFloat(String(a.price).replace(/[^0-9.]/g, ''));
-			const bp = b.price == null ? Infinity : parseFloat(String(b.price).replace(/[^0-9.]/g, ''));
-			return ap - bp;
-		});
-	}
+
+	// Fallback—unknown shape
 	return [];
 }
 

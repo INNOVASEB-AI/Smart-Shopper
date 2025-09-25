@@ -183,8 +183,8 @@ browserManager.initializeBrowser()
 
 // Start the server
 logger.info('Starting server...');
-const server = app.listen(config.port, () => {
-  logger.info(`Backend server listening on http://localhost:${config.port}`);
+const server = app.listen(config.app.port, () => {
+  logger.info(`Backend server listening on http://localhost:${config.app.port}`);
 });
 
 // Add graceful shutdown
