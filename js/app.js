@@ -1316,7 +1316,6 @@ function displayResults(products) {
 					</div>
 				</div>
 			`;
-		});
 		}
 		
 		resultsContainer.innerHTML = resultsHTML;
